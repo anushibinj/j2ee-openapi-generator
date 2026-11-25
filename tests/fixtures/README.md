@@ -185,7 +185,7 @@ Both claim `GET /orders/{orderId}` (normalized key `GET /orders/{}`), with incom
 - `detail`: path param `orderId` is `string` (legacy `orderNumber`), 200 schema
   `OrderSummaryDto`.
 
-`llm/_resolver.json` is the canned `ResolverOutput`: conflict id `GET /orders/{}`
+`llm/_resolver.json` is the canned `ResolverOutput`: conflict id `c-4eb5d4f7`
 (`{METHOD} {path with every {param} replaced by {}}`; adapt if the aggregator uses another
 id), action `rename_path`, chosen packet `sales:OrderServlet#detail`, new path
 `/orders/by-number/{orderNumber}`. After resolution, `detail` becomes `GET

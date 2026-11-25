@@ -14,3 +14,7 @@ Ambiguities are resolved in favour of determinism and traceability.
 10. **Known gap:** `EntityField` has no `@Temporal`, so `java.util.Date` is always `date-time`.
 11. **Contract additions during build:** `AccessCount.module`, `IndexBundle`, `ProposalRecord`, `StoreSnapshot`, `CoverageRow`.
 12. **JSP parsing** uses a regex tokenizer over masked text (not selectolax) to keep real line numbers.
+13. **Context chunks.** Packets also carry the dispatcher lines before the branch (or the `init()` of map dispatch), the EJB class header with class-level annotations, and the module `web.xml`, so role and registration evidence is citeable. EJB calls made before the dispatch are merged into every branch.
+14. **Conflict IDs** are `c-` plus 8 hex of sha256 over kind, method and normalized path. `ejb_path_mismatch` conflicts are advisory and do not block emit.
+15. **Re-analysis.** `oapi run` re-analyzes a rejected packet once (attempt 2, cached separately) with the verifier reasons as feedback. Still rejected means it appears as `rejected` in coverage for human review.
+16. **Fixture app.** The unresolved `view`/`detail` conflict is kept in the golden run on purpose, so the emitted spec omits `GET /orders/{orderId}`.

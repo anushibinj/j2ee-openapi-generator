@@ -56,7 +56,7 @@ async def test_normalize_and_resolve() -> None:
     r = await f.structured(
         purpose="resolve", item_id="all", messages=[], response_model=ResolverOutput
     )
-    assert r.ok and r.parsed["suggestions"][0]["conflict_id"] == "GET /orders/{}"
+    assert r.ok and r.parsed["suggestions"][0]["conflict_id"] == "c-4eb5d4f7"
 
 
 async def test_missing_and_malformed(tmp_path: Path) -> None:
