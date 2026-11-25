@@ -19,7 +19,8 @@ Supported styles (``DispatchEntry.style``):
 
 The op variable is a local assigned from ``request.getParameter("<name>")`` with the name in
 ``cfg.dispatch.param_names`` (a literal or a string constant), or a direct ``getParameter`` call
-in the comparison. Dispatch is searched from ``doGet``/``doPost``/``doPut``/``doDelete``/
+in the comparison. Wrapper calls taking the request first (``Util.getParameter(req, "op")``) and
+single character ops (``switch (op.charAt(0)) { case 'n': ... }``) are recognized too. Dispatch is searched from ``doGet``/``doPost``/``doPut``/``doDelete``/
 ``service`` (and ``processRequest`` when nothing calls it) through calls to same-class and
 superclass methods up to depth 3.
 
@@ -73,7 +74,7 @@ _TYPE_NODES = {
     "annotation_type_declaration",
     "record_declaration",
 }
-_WRAPPERS = {"trim", "toLowerCase", "toUpperCase", "intern", "toString", "strip"}
+_WRAPPERS = {"trim", "toLowerCase", "toUpperCase", "intern", "toString", "strip", "charAt"}
 _EQUALS = {"equals", "equalsIgnoreCase", "contentEquals"}
 _MAP_TYPES = {
     "Map",
@@ -147,6 +148,9 @@ def _end_line(node: Node) -> int:
 
 
 def _string_value(node: Node) -> str | None:
+    if node.type == "character_literal":  # case 'n': / op.charAt(0) == 'n'
+        t = node_text(node)
+        return unescape_java(t[1:-1]) if len(t) >= 3 else None
     if node.type != "string_literal":
         return None
     t = node_text(node)
@@ -230,12 +234,12 @@ class _Extractor:
     def _getparam_name(self, call: Node, cls: ClassInfo) -> str | None:
         if call.type != "method_invocation" or _call_name(call) != "getParameter":
             return None
-        args = _call_args(call)
-        if len(args) != 1:
-            return None
-        val, _ = self._value(args[0], cls)
-        if val is not None and val in self.cfg.dispatch.param_names:
-            return val
+        # ``req.getParameter("op")`` and wrapper forms such as
+        # ``UtilRequest.getParameter(req, "op")``: any argument naming a dispatch param counts.
+        for arg in _call_args(call):
+            val, _ = self._value(arg, cls)
+            if val is not None and val in self.cfg.dispatch.param_names:
+                return val
         return None
 
     def _value(self, node: Node, cls: ClassInfo) -> tuple[str | None, str | None]:
