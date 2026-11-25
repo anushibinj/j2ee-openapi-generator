@@ -1,0 +1,68 @@
+[project]
+name = "j2ee-openapi-generator"
+version = "0.1.0"
+description = "Deterministic multi-agent OpenAPI contract extractor for legacy J2EE monorepos"
+readme = "README.md"
+authors = [
+    { name = "Claude", email = "noreply@anthropic.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "inflect>=7.6.0",
+    "lxml>=6.1.3",
+    "openai>=3.59.0",
+    "openapi-spec-validator>=0.9.0",
+    "pydantic>=2.14.4",
+    "pydantic-settings>=2.16.3",
+    "python-dotenv>=1.2.4",
+    "pyyaml>=6.0.4",
+    "rich>=15.0.0",
+    "ruamel-yaml>=0.19.1",
+    "selectolax>=1.0.2",
+    "tenacity>=9.2.1",
+    "tiktoken>=0.14.0",
+    "tree-sitter>=0.27.0",
+    "tree-sitter-java>=0.23.5",
+    "typer>=0.29.2",
+]
+
+[project.scripts]
+oapi = "j2ee_openapi_generator.cli:app"
+
+[build-system]
+requires = ["uv_build>=0.11.32,<0.12.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "lxml-stubs>=0.5.1",
+    "mypy>=2.4.1",
+    "pytest>=9.2.0",
+    "pytest-asyncio>=1.5.0",
+    "respx>=0.23.1",
+    "ruff>=0.17.6",
+    "types-pyyaml>=6.0.12.20261122",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["tests/fixtures"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.mypy]
+strict = true
+python_version = "3.12"
+plugins = ["pydantic.mypy"]
+files = ["src"]
+
+[[tool.mypy.overrides]]
+module = ["tree_sitter_java.*", "inflect.*", "selectolax.*", "tiktoken.*", "openapi_spec_validator.*"]
+ignore_missing_imports = true
