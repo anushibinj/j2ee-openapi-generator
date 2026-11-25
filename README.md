@@ -41,7 +41,7 @@ Set `llm.structured_mode` to a supported mode: `json_schema`, `tools`, `json_obj
 uv run oapi run                       # every stage in order
 uv run oapi index                     # .oapi/index/*.json and .oapi/packets/*.json
 uv run oapi analyze [--only ID] [--offline] [--force]
-uv run oapi verify                    # lists rejected proposals with reasons
+uv run oapi verify                    # lists rejected proposals with reasons (e.g. E-NOAPI-DATA)
 uv run oapi aggregate [--resolve-with-llm]
 uv run oapi normalize
 uv run oapi emit                      # out/openapi.yml
