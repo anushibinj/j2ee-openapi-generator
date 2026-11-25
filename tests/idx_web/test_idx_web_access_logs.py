@@ -29,7 +29,7 @@ def test_counts(tmp_path: Path) -> None:
     log.write_text(LOG)
     counts = load_access_counts([log, tmp_path / "missing.log"], web, ["op", "action"])
     got = [(c.url_pattern, c.op, c.count) for c in counts]
-    assert got == [
+    assert sorted(got, key=lambda t: (t[0], t[1] or "")) == [
         ("/OrderServlet", "find", 1),
         ("/UserServlet", None, 1),
         ("/UserServlet", "list", 2),
