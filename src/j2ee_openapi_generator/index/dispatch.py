@@ -20,7 +20,8 @@ Supported styles (``DispatchEntry.style``):
 The op variable is a local assigned from ``request.getParameter("<name>")`` with the name in
 ``cfg.dispatch.param_names`` (a literal or a string constant), or a direct ``getParameter`` call
 in the comparison. Wrapper calls taking the request first (``Util.getParameter(req, "op")``) and
-single character ops (``switch (op.charAt(0)) { case 'n': ... }``) are recognized too. Dispatch is searched from ``doGet``/``doPost``/``doPut``/``doDelete``/
+single character ops (``switch (op.charAt(0)) { case 'n': ... }``) are recognized too.
+Dispatch is searched from ``doGet``/``doPost``/``doPut``/``doDelete``/
 ``service`` (and ``processRequest`` when nothing calls it) through calls to same-class and
 superclass methods up to depth 3.
 

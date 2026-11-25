@@ -537,11 +537,18 @@ class _Analyzer:
         a = self.acc
         line = _line(n)
         first = args[0] if args else None
-        if name == "getParameter" and first is not None:
-            for v in self.strs(first, env, ci):
-                a.params[v] = min(a.params.get(v, line), line)
-        elif name == "getParameterValues" and first is not None:
-            a.multi.update(self.strs(first, env, ci))
+        if name in ("getParameter", "getParameterValues"):
+            # wrapper forms such as ``Util.getParameter(req, "x")``: first arg with a string value
+            names: set[str] = set()
+            for arg in args:
+                names = set(self.strs(arg, env, ci))
+                if names:
+                    break
+            if name == "getParameter":
+                for v in names:
+                    a.params[v] = min(a.params.get(v, line), line)
+            else:
+                a.multi.update(names)
         elif name == "getParameterMap":
             a.param_map = True
         elif name == "getPart" and first is not None:
