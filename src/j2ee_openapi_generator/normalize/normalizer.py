@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import re
+import time
 from typing import Literal, Protocol
 
 import inflect
@@ -16,6 +17,7 @@ from j2ee_openapi_generator.ids import sha256_obj, sha256_text
 from j2ee_openapi_generator.llm.base import LLMClient
 from j2ee_openapi_generator.llm.cache import Cache, CacheMiss, normalizer_key
 from j2ee_openapi_generator.llm.schemas import SCHEMA_VERSION, RenameMap
+from j2ee_openapi_generator.progress import ProgressTracker, fmt_duration, metrics
 from j2ee_openapi_generator.prompts import PROMPT_VERSION, render_prompt
 from j2ee_openapi_generator.workspace import Workspace
 
@@ -329,12 +331,20 @@ async def run_normalize(
             raise CacheMiss(f"offline: no cached normalizer result for tags {misses}")
 
     sem = asyncio.Semaphore(max(1, cfg.llm.max_concurrency))
+    metrics.log(
+        f"normalize: {len(tags)} tag(s), {len(cached_hits)} cached, "
+        f"{len(tags) - len(cached_hits)} to send to LLM"
+    )
+    tracker = ProgressTracker("normalize", len(tags))
 
     async def fetch(tag: str) -> _Fetched:
         if tag in cached_hits:
+            metrics.record_cached("normalize", (cache.get(keys[tag]) or {}).get("usage"))
+            tracker.advance(f"{tag} (cache)")
             return _Fetched(parsed=cached_hits[tag], cached=True)
         messages = _build_messages(style_guide, listings[tag])
         async with sem:
+            t0 = time.monotonic()
             try:
                 res = await client.structured(
                     purpose="normalize",
@@ -343,7 +353,14 @@ async def run_normalize(
                     response_model=RenameMap,
                 )
             except Exception as exc:  # noqa: BLE001 - any client failure falls back
+                tracker.advance(f"{tag} FAILED")
                 return _Fetched(errors=[f"llm call failed: {type(exc).__name__}: {exc}"])
+            dt = time.monotonic() - t0
+        metrics.record_call("normalize", res, dt)
+        tracker.advance(
+            f"{tag} {'ok' if res.ok else 'FAILED'} {fmt_duration(dt)}, "
+            f"{res.usage.get('total_tokens', 0):,} tok"
+        )
         if res.ok and res.parsed is not None:
             cache.put(
                 keys[tag],

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import time
 from pathlib import Path
 from typing import Any
 
@@ -21,6 +22,7 @@ from j2ee_openapi_generator.llm.schemas import (
     Operation,
     ResolverOutput,
 )
+from j2ee_openapi_generator.progress import metrics
 from j2ee_openapi_generator.prompts import PROMPT_VERSION, render_prompt
 
 HEADER = "# Suggestions only. Copy accepted entries into decisions.yaml.\n"
@@ -145,6 +147,7 @@ async def suggest_resolutions(
     if not force:
         hit = cache.get(key)
         if hit is not None and hit.get("ok") and isinstance(hit.get("parsed"), dict):
+            metrics.record_cached("resolve", hit.get("usage"))
             try:
                 return ResolverOutput.model_validate(hit["parsed"])
             except ValidationError:
@@ -157,12 +160,15 @@ async def suggest_resolutions(
         conflicts=json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False),
         schema=json.dumps(ResolverOutput.model_json_schema(), indent=2, sort_keys=True),
     )
+    metrics.log("resolve: asking LLM to resolve conflicts")
+    t0 = time.monotonic()
     res = await client.structured(
         purpose="resolve",
         item_id="_resolver",
         messages=[{"role": "user", "content": prompt}],
         response_model=ResolverOutput,
     )
+    metrics.record_call("resolve", res, time.monotonic() - t0)
     cache.put(key, res.request, res.raw, res.parsed, ok=res.ok, errors=res.errors, usage=res.usage)
     if not res.ok or res.parsed is None:
         raise ResolverError("; ".join(res.errors) or "resolver call failed")

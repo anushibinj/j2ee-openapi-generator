@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import shutil
+import time
 from typing import Any
 
 from pydantic import ValidationError
@@ -17,6 +18,7 @@ from j2ee_openapi_generator.llm.cache import Cache, CacheMiss, cache_key
 from j2ee_openapi_generator.llm.client import strict_schema
 from j2ee_openapi_generator.llm.schemas import SCHEMA_VERSION, EndpointProposal
 from j2ee_openapi_generator.packets.models import WorkPacket
+from j2ee_openapi_generator.progress import ProgressTracker, fmt_duration, metrics
 from j2ee_openapi_generator.prompts import PROMPT_VERSION, render_prompt
 from j2ee_openapi_generator.workspace import Workspace, read_json, write_json
 
@@ -176,15 +178,25 @@ async def run_analyze(
             )
 
     sem = asyncio.Semaphore(max(1, cfg.llm.max_concurrency))
+    n_cached = sum(1 for p in packets if entries[p.id] is not None)
+    metrics.log(
+        f"analyze (attempt {attempt}): {len(packets)} packet(s), {n_cached} cached, "
+        f"{len(packets) - n_cached} to send to LLM (concurrency {cfg.llm.max_concurrency})"
+    )
+    tracker = ProgressTracker("analyze", len(packets))
 
     async def one(packet: WorkPacket) -> ProposalRecord:
         key = keys[packet.id]
         entry = entries[packet.id]
         if entry is not None:
-            return _to_record(packet, attempt, key, _result_from_cache(entry))
+            metrics.record_cached("analyze", entry.get("usage"))
+            rec = _to_record(packet, attempt, key, _result_from_cache(entry))
+            tracker.advance(f"{packet.id} {'ok' if rec.ok else 'FAILED'} (cache)")
+            return rec
         messages = build_messages(packet, style_guide, (feedback or {}).get(packet.id))
         item_id = packet.id if attempt == 1 else f"{packet.id}@{attempt}"
         async with sem:
+            t0 = time.monotonic()
             try:
                 res = await client.structured(
                     purpose="analyze",
@@ -194,6 +206,8 @@ async def run_analyze(
                 )
             except Exception as exc:  # noqa: BLE001 - one packet must not abort the run
                 res = StructuredResult(ok=False, errors=[f"{type(exc).__name__}: {exc}"])
+            dt = time.monotonic() - t0
+        metrics.record_call("analyze", res, dt)
         cache.put(
             key,
             request=res.request or {"messages": messages},
@@ -203,7 +217,14 @@ async def run_analyze(
             errors=res.errors,
             usage=res.usage,
         )
-        return _to_record(packet, attempt, key, res)
+        rec = _to_record(packet, attempt, key, res)
+        status = "ok" if rec.ok else f"FAILED ({(rec.errors or ['?'])[0][:80]})"
+        tok = res.usage.get("total_tokens", 0)
+        tracker.advance(
+            f"{packet.id} {status} {fmt_duration(dt)}, {tok:,} tok"
+            + (", repaired" if res.repaired else "")
+        )
+        return rec
 
     records = list(await asyncio.gather(*(one(p) for p in packets)))
     records.sort(key=lambda r: r.packet_id)
