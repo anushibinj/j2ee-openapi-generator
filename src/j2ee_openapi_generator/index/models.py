@@ -305,3 +305,21 @@ class AccessCount(BaseModel):
     url_pattern: str
     op: str | None
     count: int
+
+
+class IndexBundle(BaseModel):
+    """Everything stage 1 produces, loaded back for packets/verify/aggregate.
+
+    Stored on disk as one JSON file per field under ``.oapi/index/{field}.json``
+    (see ``workspace.save_index_bundle`` / ``load_index_bundle``).
+    """
+
+    files: list[FileRecord] = Field(default_factory=list)
+    web: WebIndex = Field(default_factory=WebIndex)
+    java: JavaIndex = Field(default_factory=JavaIndex)
+    dispatch: list[DispatchEntry] = Field(default_factory=list)  # with facts, sorted by id
+    domain: DomainIndex = Field(default_factory=DomainIndex)
+    jsps: list[JspFacts] = Field(default_factory=list)  # includes JS-only pseudo entries
+    properties: PropertiesIndex = Field(default_factory=PropertiesIndex)
+    links: list[LinkedRef] = Field(default_factory=list)
+    access: list[AccessCount] = Field(default_factory=list)

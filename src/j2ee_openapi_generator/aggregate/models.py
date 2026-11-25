@@ -7,7 +7,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from j2ee_openapi_generator.index.models import EntityRecord
-from j2ee_openapi_generator.llm.schemas import Operation
+from j2ee_openapi_generator.llm.schemas import EndpointProposal, Operation
 
 
 class VerifiedProposal(BaseModel):
@@ -86,3 +86,14 @@ class StoreSnapshot(BaseModel):
     coverage: list[CoverageRow] = Field(default_factory=list)
     open_questions: dict[str, list[str]] = Field(default_factory=dict)  # tag -> questions
     lookup_types: list[str] = Field(default_factory=list)
+
+
+class ProposalRecord(BaseModel):
+    """Analyzer output for one packet (``.oapi/proposals/{id}.json``)."""
+
+    packet_id: str
+    attempt: int = 1
+    ok: bool
+    errors: list[str] = Field(default_factory=list)
+    proposal: EndpointProposal | None = None
+    cache_key: str = ""

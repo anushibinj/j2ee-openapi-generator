@@ -8,6 +8,7 @@ from typing import Any
 
 from j2ee_openapi_generator.config import Config
 from j2ee_openapi_generator.ids import canonical_json
+from j2ee_openapi_generator.index.models import IndexBundle
 
 
 class Workspace:
@@ -53,3 +54,19 @@ def read_json(path: Path) -> Any:
 
 
 __all__ = ["Workspace", "canonical_json", "read_json", "write_json"]
+
+
+def save_index_bundle(ws: Workspace, bundle: IndexBundle) -> None:
+    """Write each bundle field to ``index/{field}.json`` (deterministic)."""
+    ws.index_dir.mkdir(parents=True, exist_ok=True)
+    for name in IndexBundle.model_fields:
+        write_json(ws.index_file(name), bundle.model_dump(mode="json")[name])
+
+
+def load_index_bundle(ws: Workspace) -> IndexBundle:
+    data = {
+        n: read_json(ws.index_file(n))
+        for n in IndexBundle.model_fields
+        if ws.index_file(n).exists()
+    }
+    return IndexBundle.model_validate(data)
