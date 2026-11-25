@@ -10,6 +10,7 @@ from rich.table import Table
 
 from j2ee_openapi_generator import pipeline
 from j2ee_openapi_generator.config import Config, load_config
+from j2ee_openapi_generator.index.models import IndexBundle
 
 app = typer.Typer(help="Deterministic J2EE to OpenAPI contract extractor.", no_args_is_help=True)
 console = Console()
@@ -29,6 +30,33 @@ def index(config: Path = ConfigOpt) -> None:
     """Stage 1: build indexes and work packets (no LLM)."""
     b = pipeline.run_index(_cfg(config))
     console.print(f"indexed {len(b.files)} files, {len(b.dispatch)} entry points")
+    if not b.dispatch:
+        _explain_no_entry_points(b)
+
+
+def _explain_no_entry_points(b: IndexBundle) -> None:
+    """Say which stage lost the entry points (modules, servlets, or class resolution)."""
+    kinds: dict[str, int] = {}
+    for f in b.files:
+        kinds[f.kind] = kinds.get(f.kind, 0) + 1
+    console.print(f"[yellow]0 entry points[/yellow]; files by kind: {dict(sorted(kinds.items()))}")
+    console.print(f"modules: {len(b.web.modules)}, servlets: {len(b.web.servlets)}")
+    if not b.web.modules:
+        console.print(
+            "  no module found: no WEB-INF/web.xml matched include_globs/exclude_globs "
+            "and `modules:` is empty in the config"
+        )
+    elif not b.web.servlets:
+        console.print(
+            "  modules found but no servlets registered (empty web.xml, or no @WebServlet "
+            "classes under a module root)"
+        )
+    else:
+        missing = [s.class_fqcn for s in b.web.servlets if s.class_fqcn not in b.java.classes]
+        console.print(
+            f"  {len(missing)}/{len(b.web.servlets)} servlet classes not found in the Java "
+            f"index (source outside include_globs, or excluded). First: {missing[:5]}"
+        )
 
 
 @app.command()
