@@ -19,6 +19,7 @@ DELETE_VERBS = frozenset({"delete", "remove"})
 BINARY_VERBS = frozenset({"export", "download", "print"})
 MULTIPART_VERBS = frozenset({"upload", "import"})
 _SERVLET_SUFFIXES = ("Servlet", "Controller", "Action")
+_ENTITY_SUFFIX = re.compile(r"(Dto|DTO|Entity|Bean|VO|Vo)$")
 _MUTATING = ("create", "add", "insert", "save", "update", "modify", "delete", "remove", "persist")
 
 
@@ -61,7 +62,8 @@ def servlet_noun(servlet_name: str) -> str:
 def resource_candidates(servlet_name: str, primary_entity: str | None) -> list[str]:
     """Plural kebab nouns: servlet-derived first, then entity-derived, deduplicated."""
     out: list[str] = []
-    for src in (servlet_noun(servlet_name), primary_entity or ""):
+    entity = _ENTITY_SUFFIX.sub("", primary_entity) if primary_entity else ""
+    for src in (servlet_noun(servlet_name), entity):
         cand = plural_kebab(src)
         if cand and cand not in out:
             out.append(cand)
@@ -128,7 +130,11 @@ def compute_hints(
         return hint("PUT", "item", f"op '{op}' is an update verb (PATCH if only some fields)")
     if verb == "save":
         if has_id_param:
-            return hint("PUT", "item", "save with an id param updates (PATCH if partial update)")
+            return hint(
+                "PUT",
+                "item",
+                "save with an id param updates (PATCH if partial update); without an id it creates (POST)",
+            )
         return hint("POST", "collection", "save without an id param creates")
     if verb == "edit":
         if forwards_only_form:
