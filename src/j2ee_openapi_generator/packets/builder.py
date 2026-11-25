@@ -53,7 +53,10 @@ from j2ee_openapi_generator.workspace import Workspace, write_json
 
 ROLE_ORDER = (
     "branch",
+    "dispatch",
     "helper",
+    "ejb_class",
+    "web_security",
     "ejb_interface",
     "ejb_impl",
     "entity",
@@ -321,6 +324,56 @@ def _is_binary(entry: DispatchEntry) -> bool:
     )
 
 
+MAX_DISPATCH_LINES = 40
+MAX_WEB_XML_LINES = 200
+
+
+def _context_chunks(
+    entry: DispatchEntry, bundle: IndexBundle, src: _Sources, module_web_xml: str | None
+) -> list[SourceChunk]:
+    """Dispatcher lines before the branch, EJB class headers and the module's web.xml.
+
+    These make role, constraint and registration evidence citeable.
+    """
+    out: list[SourceChunk] = []
+    lines = src.lines(entry.file) or []
+    classes = [c for c in bundle.java.classes.values() if c.file == entry.file]
+    if entry.style == "map":
+        for c in classes:
+            if c.fqcn == entry.servlet_fqcn:
+                for m in c.methods:
+                    if m.name == "init":
+                        out.append(
+                            render_chunk(entry.file, lines, m.start_line, m.end_line, "dispatch")
+                        )
+    elif entry.style in ("if", "switch", "default"):
+        best = None
+        for c in classes:
+            for m in c.methods:
+                if m.start_line <= entry.start_line and entry.end_line <= m.end_line:
+                    if best is None or m.start_line > best.start_line:
+                        best = m
+        if best is not None and best.start_line < entry.start_line:
+            start = max(best.start_line, entry.start_line - MAX_DISPATCH_LINES)
+            out.append(render_chunk(entry.file, lines, start, entry.start_line - 1, "dispatch"))
+    seen: set[str] = set()
+    for call in sorted(set(entry.facts.ejb_calls)):
+        ejb = _ejb_for(bundle, call.partition("#")[0])
+        if ejb is None or ejb.bean_fqcn in seen:
+            continue
+        seen.add(ejb.bean_fqcn)
+        ci = bundle.java.classes.get(ejb.bean_fqcn)
+        olines = src.lines(ejb.impl_file)
+        if ci is not None and olines is not None:
+            decl = _decl_line(olines, ci.start_line)
+            out.append(render_chunk(ejb.impl_file, olines, ci.start_line, decl, "ejb_class"))
+    if module_web_xml:
+        wl = src.lines(module_web_xml)
+        if wl is not None and len(wl) <= MAX_WEB_XML_LINES:
+            out.append(render_chunk(module_web_xml, wl, 1, len(wl), "web_security"))
+    return out
+
+
 def _sort_chunks(chunks: list[SourceChunk]) -> list[SourceChunk]:
     seen: set[tuple[str, int, int, str]] = set()
     unique: list[SourceChunk] = []
@@ -373,6 +426,7 @@ def _build(
         code_ranges.append((entry.file, s, e))
     ejb_chunks, type_names = _ejb_chunks(entry, bundle, src)
     chunks.extend(ejb_chunks)
+    chunks.extend(_context_chunks(entry, bundle, src, module.web_xml if module else None))
     chunks.extend(_entity_chunks(entry, bundle, src, type_names))
     chunks.extend(_request_chunks(refs, src))
     for path in forwards:
