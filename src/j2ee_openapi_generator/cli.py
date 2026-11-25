@@ -1,26 +1,34 @@
-"""``oapi`` command line interface. Commands delegate to stage modules."""
+"""``oapi`` command line interface. Commands delegate to ``pipeline``."""
 
 from __future__ import annotations
 
 from pathlib import Path
 
 import typer
+from rich.console import Console
+from rich.table import Table
 
+from j2ee_openapi_generator import pipeline
 from j2ee_openapi_generator.config import Config, load_config
 
 app = typer.Typer(help="Deterministic J2EE to OpenAPI contract extractor.", no_args_is_help=True)
+console = Console()
 
-ConfigOpt = typer.Option("oapi.yaml", "--config", "-c", help="Path to oapi.yaml")
+ConfigOpt = typer.Option(Path("oapi.yaml"), "--config", "-c", help="Path to oapi.yaml")
 
 
 def _cfg(path: Path) -> Config:
+    if not path.exists():
+        typer.echo(f"config not found: {path}", err=True)
+        raise typer.Exit(2)
     return load_config(path)
 
 
 @app.command()
 def index(config: Path = ConfigOpt) -> None:
     """Stage 1: build indexes and work packets (no LLM)."""
-    raise typer.Exit(_todo("index"))
+    b = pipeline.run_index(_cfg(config))
+    console.print(f"indexed {len(b.files)} files, {len(b.dispatch)} entry points")
 
 
 @app.command()
@@ -31,13 +39,22 @@ def analyze(
     force: bool = typer.Option(False, "--force"),
 ) -> None:
     """Stage 2: LLM map over packets."""
-    raise typer.Exit(_todo("analyze"))
+    console.print(pipeline.stage_analyze(_cfg(config), only=only, offline=offline, force=force))
 
 
 @app.command()
 def verify(config: Path = ConfigOpt) -> None:
     """Stage 3: deterministic verification of proposals."""
-    raise typer.Exit(_todo("verify"))
+    cfg = _cfg(config)
+    counts = pipeline.stage_verify(cfg)
+    console.print(counts)
+    from j2ee_openapi_generator.verify.verifier import rejected_feedback
+    from j2ee_openapi_generator.workspace import Workspace
+
+    for pid, reasons in sorted(rejected_feedback(Workspace(cfg)).items()):
+        console.print(f"[red]rejected[/red] {pid}")
+        for r in reasons:
+            console.print(f"  - {r}")
 
 
 @app.command()
@@ -46,45 +63,70 @@ def aggregate(
     resolve_with_llm: bool = typer.Option(False, "--resolve-with-llm"),
 ) -> None:
     """Stage 4: merge into the SQLite store."""
-    raise typer.Exit(_todo("aggregate"))
+    for w in pipeline.stage_aggregate(_cfg(config), resolve_with_llm=resolve_with_llm):
+        console.print(f"warning: {w}")
 
 
 @app.command()
-def normalize(config: Path = ConfigOpt) -> None:
+def normalize(
+    config: Path = ConfigOpt,
+    offline: bool = typer.Option(False, "--offline"),
+    force: bool = typer.Option(False, "--force"),
+) -> None:
     """Stage 5: naming normalization."""
-    raise typer.Exit(_todo("normalize"))
+    n = pipeline.stage_normalize(_cfg(config), offline=offline, force=force)
+    console.print(f"normalize finished with {n} issue(s)")
 
 
 @app.command()
 def emit(config: Path = ConfigOpt) -> None:
     """Stage 6: write out/openapi.yml."""
-    raise typer.Exit(_todo("emit"))
+    console.print(str(pipeline.stage_emit(_cfg(config))))
 
 
 @app.command()
 def report(config: Path = ConfigOpt) -> None:
     """Stage 7: coverage and open-question reports."""
-    raise typer.Exit(_todo("report"))
+    pipeline.stage_report(_cfg(config))
 
 
 @app.command()
-def validate(config: Path = ConfigOpt, baseline: Path | None = typer.Option(None)) -> None:
+def validate(
+    config: Path = ConfigOpt,
+    baseline: Path | None = typer.Option(None, "--baseline", help="Previous openapi.yml"),
+) -> None:
     """Validate out/openapi.yml."""
-    raise typer.Exit(_todo("validate"))
+    results = pipeline.stage_validate(_cfg(config), baseline)
+    bad = False
+    for r in results:
+        state = "skipped" if r.skipped else ("ok" if r.ok else "FAILED")
+        console.print(f"{r.tool}: {state}")
+        if r.output and not r.ok:
+            console.print(r.output)
+        bad = bad or (not r.ok and not r.skipped)
+    if bad:
+        raise typer.Exit(1)
 
 
 @app.command()
-def run(config: Path = ConfigOpt) -> None:
+def run(
+    config: Path = ConfigOpt,
+    offline: bool = typer.Option(False, "--offline"),
+    force: bool = typer.Option(False, "--force"),
+) -> None:
     """Run every stage in order."""
-    raise typer.Exit(_todo("run"))
+    cfg = _cfg(config)
+    pipeline.run_all(cfg, offline=offline, force=force)
+    console.print(f"wrote {cfg.out_path / 'openapi.yml'}")
 
 
 @app.command()
 def doctor(config: Path = ConfigOpt) -> None:
     """Probe which structured modes the endpoint supports."""
-    raise typer.Exit(_todo("doctor"))
+    from j2ee_openapi_generator.llm.client import run_doctor
 
-
-def _todo(name: str) -> int:
-    typer.echo(f"{name}: not implemented yet", err=True)
-    return 2
+    table = Table("check", "status", "detail")
+    for row in run_doctor(_cfg(config)):
+        detail = str(row.get("error") or row.get("server_context") or "")
+        table.add_row(str(row["check"]), str(row["status"]), detail)
+    console.print(table)

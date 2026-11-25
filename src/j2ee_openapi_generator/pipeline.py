@@ -6,6 +6,7 @@ import re
 from collections.abc import Callable
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from j2ee_openapi_generator.config import Config
 from j2ee_openapi_generator.index.access_logs import load_access_counts
@@ -27,7 +28,11 @@ from j2ee_openapi_generator.index.models import (
 )
 from j2ee_openapi_generator.index.properties import build_properties_index, parse_properties
 from j2ee_openapi_generator.index.webxml import build_web_index, merge_annotation_servlets
-from j2ee_openapi_generator.workspace import Workspace, save_index_bundle
+from j2ee_openapi_generator.workspace import Workspace, load_index_bundle, save_index_bundle
+
+if TYPE_CHECKING:
+    from j2ee_openapi_generator.aggregate.models import StoreSnapshot
+    from j2ee_openapi_generator.report.validate import ValidationResult
 
 _URL_ATTR = re.compile(r'(?:urlPatterns|value)\s*=\s*(\{[^}]*\}|"[^"]*")|^"[^"]*"$|^\{[^}]*\}$')
 _NAME_ATTR = re.compile(r'name\s*=\s*"([^"]*)"')
@@ -145,3 +150,135 @@ def run_index(cfg: Config) -> IndexBundle:
 
     write_packets(ws, build_packets(cfg, bundle, cfg.worker_count()))
     return bundle
+
+
+# ----------------------------------------------------------------- later stages
+def stage_analyze(
+    cfg: Config, *, only: str | None = None, offline: bool = False, force: bool = False
+) -> dict[str, int]:
+    from j2ee_openapi_generator.analyze.analyzer import analysis_summary, analyze_sync
+    from j2ee_openapi_generator.llm.client import make_client
+
+    ws = Workspace(cfg)
+    ws.ensure()
+    client = make_client(cfg)
+    recs = analyze_sync(cfg, client, ws, only=only, offline=offline, force=force)
+    return analysis_summary(recs)
+
+
+def stage_verify(cfg: Config) -> dict[str, int]:
+    from j2ee_openapi_generator.verify.verifier import verify_all
+
+    ws = Workspace(cfg)
+    bundle = load_index_bundle(ws)
+    out = verify_all(cfg, ws, bundle, cfg.worker_count())
+    counts: dict[str, int] = {}
+    for v in out:
+        counts[v.status] = counts.get(v.status, 0) + 1
+    return counts
+
+
+def stage_reanalyze(cfg: Config, *, offline: bool = False, force: bool = False) -> int:
+    """Re-analyze rejected proposals once with the verifier reasons as feedback."""
+    from j2ee_openapi_generator.analyze.analyzer import analyze_sync
+    from j2ee_openapi_generator.llm.client import make_client
+    from j2ee_openapi_generator.verify.verifier import rejected_feedback
+
+    ws = Workspace(cfg)
+    fb = rejected_feedback(ws)
+    if not fb:
+        return 0
+    analyze_sync(
+        cfg,
+        make_client(cfg),
+        ws,
+        offline=offline,
+        force=force,
+        attempt=2,
+        feedback=fb,
+        only_ids=set(fb),
+    )
+    return len(fb)
+
+
+def stage_aggregate(
+    cfg: Config, *, resolve_with_llm: bool = False, offline: bool = False
+) -> list[str]:
+    from j2ee_openapi_generator.aggregate.run import run_aggregate
+    from j2ee_openapi_generator.llm.client import make_client
+
+    ws = Workspace(cfg)
+    bundle = load_index_bundle(ws)
+    client = make_client(cfg) if resolve_with_llm else None
+    store, warnings = run_aggregate(
+        cfg, ws, bundle, client=client, resolve_with_llm=resolve_with_llm, offline=offline
+    )
+    store.close()
+    return warnings
+
+
+def stage_normalize(cfg: Config, *, offline: bool = False, force: bool = False) -> int:
+    from j2ee_openapi_generator.aggregate.store import Store
+    from j2ee_openapi_generator.llm.client import make_client
+    from j2ee_openapi_generator.normalize.normalizer import normalize_sync
+
+    ws = Workspace(cfg)
+    store = Store(ws.db_path)
+    try:
+        report = normalize_sync(cfg, make_client(cfg), ws, store, offline=offline, force=force)
+    finally:
+        store.close()
+    return len(report.errors)
+
+
+def load_snapshot(cfg: Config) -> StoreSnapshot:
+    from j2ee_openapi_generator.aggregate.run import derive_error_codes
+    from j2ee_openapi_generator.aggregate.store import Store
+
+    ws = Workspace(cfg)
+    bundle = load_index_bundle(ws)
+    store = Store(ws.db_path)
+    try:
+        return store.snapshot(bundle.domain.entities, derive_error_codes(bundle))
+    finally:
+        store.close()
+
+
+def stage_emit(cfg: Config) -> Path:
+    from j2ee_openapi_generator.emit.builder import build_openapi
+    from j2ee_openapi_generator.emit.writer import write_openapi
+
+    ws = Workspace(cfg)
+    ws.out_dir.mkdir(parents=True, exist_ok=True)
+    doc = build_openapi(load_snapshot(cfg), cfg)
+    path = ws.out_dir / "openapi.yml"
+    write_openapi(doc, path)
+    return path
+
+
+def stage_report(cfg: Config) -> None:
+    from j2ee_openapi_generator.report.coverage import write_reports
+
+    ws = Workspace(cfg)
+    ws.out_dir.mkdir(parents=True, exist_ok=True)
+    write_reports(load_snapshot(cfg), ws.out_dir)
+
+
+def stage_validate(cfg: Config, baseline: Path | None = None) -> list[ValidationResult]:
+    from j2ee_openapi_generator.report.validate import validate_openapi
+
+    ws = Workspace(cfg)
+    return validate_openapi(ws.out_dir / "openapi.yml", baseline)
+
+
+def run_all(cfg: Config, *, offline: bool = False, force: bool = False) -> None:
+    """Every stage in order, including the single verifier-feedback re-analysis."""
+    run_index(cfg)
+    stage_analyze(cfg, offline=offline, force=force)
+    stage_verify(cfg)
+    if stage_reanalyze(cfg, offline=offline, force=force):
+        stage_verify(cfg)
+    stage_aggregate(cfg, offline=offline)
+    stage_normalize(cfg, offline=offline, force=force)
+    stage_emit(cfg)
+    stage_report(cfg)
