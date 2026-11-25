@@ -24,7 +24,6 @@ from j2ee_openapi_generator.packets.models import (
     WorkPacket,
 )
 
-
 SLACK = 60  # room for the trimmed notes, far below one dropped chunk
 
 
@@ -71,7 +70,7 @@ def packet(chunks: list[SourceChunk]) -> WorkPacket:
             style="if",
             http_methods=["GET"],
             url_patterns=["/S"],
-        ),  # fmt: skip
+        ),
         chunks=chunks,
         hints=MappingHints(http_method="GET", shape="item"),
         properties={"k": "v"},
@@ -120,9 +119,12 @@ def test_split_blocks_top_level() -> None:
     blocks = split_blocks(numbered)
     assert len(blocks) == 3
     assert [b[0][0] for b in blocks] == [100, 103, 106]
-    # else-if chain stays one block
-    chain = [(1, "if (a) {"), (2, "  x();"), (3, "} else if (b) {"), (4, "  y();"), (5, "}")]
-    assert len(split_blocks(chain)) == 1
+    # a single nested statement stays one block
+    nested = [(1, "if (a) {"), (2, "  if (b) {"), (3, "    x();"), (4, "  }"), (5, "}")]
+    assert len(split_blocks(nested)) == 1
+    # a range that is one opening block splits into its inner statements
+    case = [(1, "case A: {"), (2, "  x();"), (3, "  y();"), (4, "  break;"), (5, "}")]
+    assert [[n for n, _ in b] for b in split_blocks(case)] == [[1, 2], [3], [4, 5]]
     # braces in strings and comments do not count
     tricky = [(1, 'log("{");'), (2, "foo(); // }"), (3, "bar();")]
     assert len(split_blocks(tricky)) == 3
@@ -227,7 +229,18 @@ def test_hash_changes_with_content() -> None:
 
 
 def test_oversized_single_block() -> None:
-    p = packet([branch_chunk(1, lines_per_block=30)])
+    long_stmt = [(1, "call(" + ", ".join(f"arg{i}" for i in range(80)) + ");")]
+    p = packet(
+        [
+            SourceChunk(
+                file="A.java",
+                start_line=1,
+                end_line=1,
+                role="branch",
+                text=format_chunk_text("A.java", long_stmt),
+            )
+        ]
+    )
     out = fit_packet(p, 10)
     assert len(out) == 1 and out[0].partial
     assert "oversized" in out[0].trimmed

@@ -5,11 +5,11 @@ import pytest
 from j2ee_openapi_generator.index.models import (
     BranchFacts,
     DispatchEntry,
+    DomainIndex,
     EjbMethod,
     EjbRecord,
     EntityRecord,
     IndexBundle,
-    DomainIndex,
     ModuleRecord,
     WebIndex,
 )
@@ -144,9 +144,13 @@ def test_resource_candidates() -> None:
 def _bundle() -> IndexBundle:
     def ent(name: str, kind: str = "entity") -> EntityRecord:
         return EntityRecord(
-            fqcn=f"m.{name}", simple_name=name, kind=kind,  # type: ignore[arg-type]
-            file=f"m/{name}.java", start_line=1, end_line=2,
-        )  # fmt: skip
+            fqcn=f"m.{name}",
+            simple_name=name,
+            kind=kind,  # type: ignore[arg-type]
+            file=f"m/{name}.java",
+            start_line=1,
+            end_line=2,
+        )
 
     ejb = EjbRecord(
         bean_fqcn="m.SvcBean",
@@ -154,15 +158,23 @@ def _bundle() -> IndexBundle:
         interfaces=["m.SvcLocal"],
         impl_file="m/SvcBean.java",
         methods=[
-            EjbMethod(name="a", signature="a(Order)", return_type="List<Order>", start_line=1, end_line=2),
+            EjbMethod(
+                name="a", signature="a(Order)", return_type="List<Order>", start_line=1, end_line=2
+            ),
             EjbMethod(name="b", signature="b(Long)", return_type="Order", start_line=1, end_line=2),
-            EjbMethod(name="c", signature="c(String)", return_type="Customer", start_line=1, end_line=2),
+            EjbMethod(
+                name="c", signature="c(String)", return_type="Customer", start_line=1, end_line=2
+            ),
         ],
-    )  # fmt: skip
+    )
     return IndexBundle(
-        web=WebIndex(modules=[ModuleRecord(name="m", web_xml="m/web.xml", root_dir="m", context_root="/m")]),
-        domain=DomainIndex(ejbs=[ejb], entities=[ent("Order"), ent("Customer"), ent("Status", "enum")]),
-    )  # fmt: skip
+        web=WebIndex(
+            modules=[ModuleRecord(name="m", web_xml="m/web.xml", root_dir="m", context_root="/m")]
+        ),
+        domain=DomainIndex(
+            ejbs=[ejb], entities=[ent("Order"), ent("Customer"), ent("Status", "enum")]
+        ),
+    )
 
 
 def test_pick_primary_entity() -> None:

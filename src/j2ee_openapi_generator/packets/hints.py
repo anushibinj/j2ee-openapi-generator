@@ -133,7 +133,7 @@ def compute_hints(
             return hint(
                 "PUT",
                 "item",
-                "save with an id param updates (PATCH if partial update); without an id it creates (POST)",
+                "save with an id param updates (PATCH if partial update)",
             )
         return hint("POST", "collection", "save without an id param creates")
     if verb == "edit":

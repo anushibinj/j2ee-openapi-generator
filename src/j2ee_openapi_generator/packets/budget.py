@@ -94,8 +94,7 @@ def _code_only(text: str) -> str:
     return _STRING.sub('""', text).split("//", 1)[0]
 
 
-def split_blocks(numbered: list[tuple[int, str]]) -> list[list[tuple[int, str]]]:
-    """Split lines at line boundaries between top-level statements (brace depth 0)."""
+def _blocks_at(numbered: list[tuple[int, str]], base: int) -> list[list[tuple[int, str]]]:
     blocks: list[list[tuple[int, str]]] = []
     cur: list[tuple[int, str]] = []
     depth = 0
@@ -103,13 +102,37 @@ def split_blocks(numbered: list[tuple[int, str]]) -> list[list[tuple[int, str]]]
         cur.append((n, text))
         code = _code_only(text)
         depth += code.count("{") - code.count("}")
-        stripped = code.strip()
-        if depth <= 0 and stripped.endswith((";", "}")):
+        if depth <= base and code.strip().endswith((";", "}")):
             blocks.append(cur)
             cur = []
-            depth = 0
+            depth = base if depth > base else depth
     if cur:
         blocks.append(cur)
+    # a block that is only closing braces belongs to the previous block
+    merged: list[list[tuple[int, str]]] = []
+    for blk in blocks:
+        if merged and all(set(t.strip()) <= set("});,") for _, t in blk):
+            merged[-1].extend(blk)
+        else:
+            merged.append(blk)
+    return merged
+
+
+def split_blocks(numbered: list[tuple[int, str]]) -> list[list[tuple[int, str]]]:
+    """Split lines at line boundaries between top-level statements (brace depth tracking).
+
+    When the range is one block that opens on its first line (``case X: {`` or ``if (...) {``),
+    the statements inside that block are the split units and the opening line stays with the
+    first of them.
+    """
+    blocks = _blocks_at(numbered, 0)
+    if len(blocks) == 1 and len(numbered) > 2:
+        first = _code_only(numbered[0][1])
+        inner = first.count("{") - first.count("}")
+        if inner > 0:
+            deeper = _blocks_at(numbered, inner)
+            if len(deeper) > 1:
+                return deeper
     return blocks
 
 
