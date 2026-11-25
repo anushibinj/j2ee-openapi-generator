@@ -508,3 +508,72 @@ def test_non_ascii_source_line_numbers() -> None:
     )
     e = by_op(run_snippets(srcs))
     assert set(e) == {"é"} and (e["é"].start_line, e["é"].end_line) == (8, 10)
+
+
+# ----------------------------------------------------------------- wrapper getParameter / charAt
+def test_wrapper_get_parameter_and_char_switch() -> None:
+    """``Util.getParameter(req, "op")`` + ``switch (op.charAt(0)) { case 'n': ... }``."""
+    body = """
+    public void doPost(HttpServletRequest req, HttpServletResponse resp) {
+        String szOperation = UtilRequest.getParameter(req, "op");
+        if (szOperation != null) {
+            switch (szOperation.charAt(0)) {
+            case 'n':
+                add(req);
+                show(req);
+                break;
+            case 'u':
+                update(req);
+                break;
+            case 'g':
+            case 'd':
+                groups(req);
+                break;
+            default:
+                unknown();
+            }
+        } else {
+        }
+    }
+    """
+    e = by_op(run_snippets(servlet(body)))
+    assert {"n", "u", "g", "d", "<default>"} <= set(e)
+    assert e["n"].style == "switch" and e["n"].param_name == "op"
+    assert (e["g"].start_line, e["g"].end_line) == (e["d"].start_line, e["d"].end_line)
+    assert e["n"].http_methods == ["POST"]
+
+
+def test_wrapper_get_parameter_inline_and_if_char_compare() -> None:
+    body = """
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) {
+        if (UtilRequest.getParameter(req, "action").charAt(0) == 'x') { a(); }
+        else if ('y' == UtilRequest.getParameter(req, "action").charAt(0)) { b(); }
+    }
+    """
+    e = by_op(run_snippets(servlet(body)))
+    assert {"x", "y"} <= set(e) and e["x"].param_name == "action"
+
+
+def test_wrapper_get_parameter_unknown_param_still_ignored() -> None:
+    body = """
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) {
+        String other = UtilRequest.getParameter(req, "unrelated");
+        if ("y".equals(other)) { b(); }
+    }
+    """
+    e = by_op(run_snippets(servlet(body)))
+    assert set(e) == {"<default>"} and e["<default>"].style == "default"
+
+
+def test_char_escape_label() -> None:
+    body = """
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) {
+        String op = req.getParameter("op");
+        switch (op.charAt(0)) {
+        case '\\t': a(); break;
+        case 'q': b(); break;
+        }
+    }
+    """
+    e = by_op(run_snippets(servlet(body)))
+    assert {"\t", "q"} <= set(e)

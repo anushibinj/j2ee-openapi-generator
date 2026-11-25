@@ -43,6 +43,19 @@ _STATUS_EVIDENCE = re.compile(
 )
 _ID_NAME = re.compile(r"[a-z0-9](Id|Number|Code)$")
 _SESSION = re.compile(r"getSession|getAttribute")
+# code that reads or writes application data; a branch containing it is not "page only"
+_DATA_ACCESS = re.compile(
+    r"\bnew\s+\w*DAO\s*\(|\b\w+DAO\.\w+\s*\(|\bgetBean\s*\(|\b\w*Ejb\s*\(\s*\)"
+    r"|\b\w*Cache\.(?:get|set|put|update|clear)\w*\s*\(|\.(?:executeQuery|executeUpdate)\s*\("
+    r"|\bDatabaseConnection\.getConnection\s*\("
+)
+_SOURCE_ROLES = frozenset({"branch", "helper"})
+# reasons that legitimately point at another operation instead of exposing the data again
+_COVERED_ELSEWHERE = re.compile(
+    r"covered\s+by|\bsame\b|\banother\b|\bequivalent\b|\bexisting\b|\bduplicat"
+    r"|already\s+(?:expos|cover|serv|provid)|\bas\s+op\s*=",
+    re.IGNORECASE,
+)
 
 JAVA_KEYWORDS = frozenset(
     "abstract assert boolean break byte case catch char class const continue default do double "
@@ -302,6 +315,45 @@ def _check_identity(packet: WorkPacket, proposal: EndpointProposal) -> list[str]
     return out
 
 
+def _data_access_evidence(packet: WorkPacket) -> str | None:
+    """First sign that the branch touches data: an indexer hint or a data access line.
+
+    EJB chunks in a packet are not a sign by themselves (they also carry type context). The
+    ``action`` hint with a real HTTP method is only produced when the branch calls EJB methods.
+    """
+    hints = packet.hints
+    if hints.shape == "action" and hints.http_method.upper() != "NONE":
+        return f"indexer hint: {hints.reason}"
+    for chunk in packet.chunks:
+        if chunk.role not in _SOURCE_ROLES:
+            continue
+        for raw in chunk.text.splitlines():
+            m = _LINE.match(raw)
+            if m and _DATA_ACCESS.search(m.group(2)):
+                return f"{chunk.file}:{m.group(1)}: {m.group(2).strip()}"
+    return None
+
+
+def _check_no_api_data(packet: WorkPacket, proposal: EndpointProposal) -> list[str]:
+    """Reject ``no_api_needed`` when the branch plainly reads or writes data.
+
+    A reason that points at another operation of the same servlet, and any proposal that lists
+    lookups, are left alone (style guide section 15).
+    """
+    if proposal.operations or proposal.lookups_needed or proposal.no_api_needed is None:
+        return []
+    if _COVERED_ELSEWHERE.search(proposal.no_api_needed):
+        return []
+    found = _data_access_evidence(packet)
+    if found is None:
+        return []
+    return [
+        "E-NOAPI-DATA: no_api_needed is set but the code reads or writes data "
+        f"({found}); map it to an operation, or say which other operation of the same "
+        "servlet already exposes this data"
+    ]
+
+
 def verify_proposal(
     packet: WorkPacket,
     proposal: EndpointProposal,
@@ -314,6 +366,7 @@ def verify_proposal(
     roles = set(known_roles) | facts.packet_roles
     dispatch = set(dispatch_params)
     out: list[str] = _check_identity(packet, proposal)
+    out += _check_no_api_data(packet, proposal)
     out += _check_hints(packet, proposal)
     for need in proposal.lookups_needed:
         for e in need.evidence:

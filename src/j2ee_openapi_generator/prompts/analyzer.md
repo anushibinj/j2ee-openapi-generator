@@ -13,7 +13,7 @@ Reply with ONE JSON object and nothing else: no prose, no code fences. It must c
 3. The packet contains mapping hints (suggested method, path, resource). You may deviate from a hint only if you set `hint_override_reason` on the operation and explain why.
 4. The legacy request parameter `id` (or `<entity>Id`) that selects one record becomes the path parameter `{resourceId}`, for example `{userId}`. Keep the legacy name in `legacy_name`.
 5. Paths are relative to the API prefix, use kebab-case plural nouns, and carry no verbs. Use `GET` for reads, `POST` for creation and actions, `PUT` for full replacement, `PATCH` for partial change, `DELETE` for removal.
-6. An operation that only forwards to a page and reads or writes no data gets an empty `operations` list and a reason in `no_api_needed`.
+6. An operation that only forwards to a page and reads or writes no data gets an empty `operations` list and a reason in `no_api_needed`. Reading or writing data through helpers, DAOs, caches or EJBs counts as data, even when the branch itself looks empty; a `no_api_needed` for such a branch is rejected unless the reason names the other operation that already exposes the data.
 7. Data that fills dropdowns or option lists becomes a lookup: list it in `lookups_needed` with a kebab-case `type`; it is served by `GET /lookups/{type}`.
 8. A save that creates or updates depending on whether an id is present becomes two operations: `POST` on the collection and `PUT` on the item.
 9. A multi step session wizard becomes a draft resource: `POST /{resource}/drafts`, `PATCH /{resource}/drafts/{draftId}`, `POST /{resource}/drafts/{draftId}/submit`.
