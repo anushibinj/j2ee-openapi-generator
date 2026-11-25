@@ -59,13 +59,23 @@ class Config(BaseModel):
     modules: list[ModuleConfig] = Field(default_factory=list)
     include_globs: list[str] = Field(
         default_factory=lambda: [
-            "**/*.java", "**/*.jsp", "**/*.jspf", "**/*.tag", "**/web.xml",
-            "**/ejb-jar.xml", "**/*.properties", "**/*.js",
+            "**/*.java",
+            "**/*.jsp",
+            "**/*.jspf",
+            "**/*.tag",
+            "**/web.xml",
+            "**/ejb-jar.xml",
+            "**/*.properties",
+            "**/*.js",
         ]
     )
     exclude_globs: list[str] = Field(
         default_factory=lambda: [
-            "**/test/**", "**/target/**", "**/build/**", "**/node_modules/**", "**/generated/**",
+            "**/test/**",
+            "**/target/**",
+            "**/build/**",
+            "**/node_modules/**",
+            "**/generated/**",
         ]
     )
     dispatch: DispatchConfig = Field(default_factory=DispatchConfig)
@@ -120,6 +130,7 @@ class Config(BaseModel):
 
 def _interpolate(value: Any) -> Any:
     if isinstance(value, str):
+
         def sub(m: re.Match[str]) -> str:
             return os.environ.get(m.group(1), m.group(2) if m.group(2) is not None else "")
 

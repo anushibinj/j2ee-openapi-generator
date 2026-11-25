@@ -25,8 +25,14 @@ class Workspace:
         self.out_dir = cfg.out_path
 
     def ensure(self) -> None:
-        for d in (self.index_dir, self.packets_dir, self.proposals_dir, self.verified_dir,
-                  self.cache_dir, self.out_dir):
+        for d in (
+            self.index_dir,
+            self.packets_dir,
+            self.proposals_dir,
+            self.verified_dir,
+            self.cache_dir,
+            self.out_dir,
+        ):
             d.mkdir(parents=True, exist_ok=True)
 
     # index files (one JSON each)
@@ -37,8 +43,9 @@ class Workspace:
 def write_json(path: Path, obj: Any) -> None:
     """Deterministic pretty JSON (sorted keys, trailing newline)."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(obj, sort_keys=True, indent=2, ensure_ascii=False) + "\n",
-                    encoding="utf-8")
+    path.write_text(
+        json.dumps(obj, sort_keys=True, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
 
 
 def read_json(path: Path) -> Any:
