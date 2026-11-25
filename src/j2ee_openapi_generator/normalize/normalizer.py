@@ -148,9 +148,7 @@ def validate_rename_map(
             desc = _clean_text(desc).strip()
             if len(desc) > MAX_DESCRIPTION:
                 msgs.append(f"{o.key}: description longer than {MAX_DESCRIPTION} chars")
-        ops.append(
-            o.model_copy(update={"summary": summary, "description": desc or None})
-        )
+        ops.append(o.model_copy(update={"summary": summary, "description": desc or None}))
     tds = []
     for td in rm.tag_descriptions:
         if td.tag != tag:
@@ -196,7 +194,7 @@ def _singular(word: str) -> str:
 
 
 def _plural(word: str) -> str:
-    res = _inflect.plural_noun(word)
+    res = _inflect.plural_noun(_singular(word))
     return res if isinstance(res, str) and res else word
 
 
