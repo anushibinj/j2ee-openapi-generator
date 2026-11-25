@@ -1,3 +1,4 @@
+# ruff: noqa: E501
 from __future__ import annotations
 
 import time
@@ -98,7 +99,7 @@ interface K { String OP = "go"; }
 def test_resolution_imports_package_wildcard() -> None:
     idx = make_index(
         {
-            "x/Base.java": "package x; public class Base { static final String K = \"k\"; }",
+            "x/Base.java": 'package x; public class Base { static final String K = "k"; }',
             "x/Child.java": "package x; import y.*; import z.Explicit;\n"
             "public class Child extends Base implements Wild, Explicit {"
             " Wild w; Explicit e; Base b; java.util.List<Base> l; String s; Nope n; }",
@@ -172,7 +173,10 @@ def test_fixture_index_and_worker_equivalence() -> None:
     user = one.classes["com.acme.accounts.model.User"]
     name = next(f for f in user.fields if f.name == "name")
     assert "Column(nullable = false, length = 80)" in name.annotations
-    assert one.classes["com.acme.sales.web.ReportServlet"].superclass == "com.acme.sales.web.BaseServlet"
+    assert (
+        one.classes["com.acme.sales.web.ReportServlet"].superclass
+        == "com.acme.sales.web.BaseServlet"
+    )
     assert one.classes["com.acme.accounts.model.UserStatus"].enum_constants == [
         "ACTIVE",
         "SUSPENDED",
@@ -185,7 +189,7 @@ def test_fixture_index_and_worker_equivalence() -> None:
 
 def test_parse_speed_sanity() -> None:
     body = "\n".join(
-        f"    public int m{i}(String a, int b) {{ if (a.equals(\"x{i}\")) {{ return b; }} return {i}; }}"
+        f'    public int m{i}(String a, int b) {{ if (a.equals("x{i}")) {{ return b; }} return {i}; }}'
         for i in range(200)
     )
     src = "package p;\n" + "\n".join(f"class C{i} {{\n{body}\n}}" for i in range(25))
