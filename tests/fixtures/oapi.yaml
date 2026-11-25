@@ -1,0 +1,37 @@
+# Config for the fake legacy app. Paths resolve against this file's directory.
+# Tests normally override work_dir/out_dir/review_dir with tmp dirs.
+repo_root: legacy-app
+
+modules:
+  - name: accounts
+    web_xml: accounts/src/main/webapp/WEB-INF/web.xml
+    context_root: /accounts
+    tag_prefix: Accounts
+  - name: sales
+    web_xml: sales/src/main/webapp/WEB-INF/web.xml
+    context_root: /sales
+    tag_prefix: Sales
+
+dispatch:
+  param_names: [op, action, cmd]
+  method_name_patterns: ["do{Op}", "handle{Op}", "{op}"]
+
+openapi:
+  version: "3.1.0"
+  title: Fixture Product API
+  api_prefix: /v1
+  provenance: true
+
+llm:
+  fake: true
+  fake_dir: llm
+  structured_mode: json_schema
+  context_tokens: 32000
+  max_output_tokens: 4096
+  max_concurrency: 2
+
+work_dir: .oapi-test
+out_dir: out-test
+review_dir: review-test
+style_guide: ../../style-guide/api-style-guide.md
+workers: 1
