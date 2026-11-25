@@ -88,6 +88,23 @@ def _map(
         return list(ex.map(fn, items, chunksize=8))  # type: ignore[arg-type]
 
 
+def _prelude_entry(e: DispatchEntry, java: JavaIndex) -> DispatchEntry | None:
+    """Lines of the dispatching method before the first branch, as a pseudo entry."""
+    if e.style not in ("if", "switch", "default"):
+        return None
+    best = None
+    for c in java.classes.values():
+        if c.file != e.file:
+            continue
+        for m in c.methods:
+            if m.start_line <= e.start_line and e.end_line <= m.end_line:
+                if best is None or m.start_line > best.start_line:
+                    best = m
+    if best is None or best.start_line >= e.start_line:
+        return None
+    return e.model_copy(update={"start_line": best.start_line, "end_line": e.start_line - 1})
+
+
 def build_index(cfg: Config, workers: int | None = None) -> IndexBundle:
     """Run every indexer (no LLM) and return the bundle. Deterministic for any worker count."""
     w = workers or cfg.worker_count()
@@ -109,7 +126,12 @@ def build_index(cfg: Config, workers: int | None = None) -> IndexBundle:
     roots = {m.name: m.root_dir for m in web.modules}
     facts: list[DispatchEntry] = []
     for e in dispatch:
-        e.facts = compute_branch_facts(e, java, read, ejbs, roots.get(e.module, ""), jsp_files)
+        root = roots.get(e.module, "")
+        e.facts = compute_branch_facts(e, java, read, ejbs, root, jsp_files)
+        prelude = _prelude_entry(e, java)
+        if prelude is not None:  # EJB calls made before the dispatch apply to every branch
+            pre = compute_branch_facts(prelude, java, read, ejbs, root, jsp_files)
+            e.facts.ejb_calls = sorted({*e.facts.ejb_calls, *pre.ejb_calls})
         facts.append(e)
 
     params = cfg.dispatch.param_names

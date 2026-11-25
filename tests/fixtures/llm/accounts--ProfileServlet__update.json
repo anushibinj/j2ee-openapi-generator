@@ -152,7 +152,7 @@
           "snippet": "} else if (OP_UPDATE.equals(op)) {"
         }
       ],
-      "hint_override_reason": null
+      "hint_override_reason": "Profile update changes only the fields the user submitted, so PATCH is used instead of PUT."
     }
   ],
   "no_api_needed": null,

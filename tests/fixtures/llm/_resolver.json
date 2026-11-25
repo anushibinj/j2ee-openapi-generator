@@ -1,7 +1,7 @@
 {
   "suggestions": [
     {
-      "conflict_id": "GET /orders/{}",
+      "conflict_id": "c-4eb5d4f7",
       "action": "rename_path",
       "chosen_packet_id": "sales:OrderServlet#detail",
       "new_path": "/orders/by-number/{orderNumber}",

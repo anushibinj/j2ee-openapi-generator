@@ -1,0 +1,1154 @@
+openapi: '3.1.0'
+info:
+  title: Fixture Product API
+  version: 1.0.0
+security:
+  - bearerAuth: []
+tags:
+  - name: Accounts Profile
+    description: Operations of the accounts profile area.
+  - name: Accounts Users
+    description: Operations of the accounts users area.
+  - name: Sales Lookups
+    description: Operations of the sales lookups area.
+  - name: Sales Orders
+    description: Operations of the sales orders area.
+  - name: Sales Reports
+    description: Operations of the sales reports area.
+paths:
+  /v1/lookups/countries:
+    get:
+      operationId: listCountries
+      tags:
+        - Sales Lookups
+      summary: List countries
+      responses:
+        '200':
+          description: Countries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Country'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      x-legacy-source:
+        module: sales
+        servlet: LookupServlet
+        op: countries
+        httpMethods:
+          - GET
+        jsps:
+          - sales/src/main/webapp/wizardStep1.jsp
+  /v1/lookups/statuses:
+    get:
+      operationId: listOrderStatuses
+      tags:
+        - Sales Lookups
+      summary: List order statuses
+      responses:
+        '200':
+          description: Status names
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      x-legacy-source:
+        module: sales
+        servlet: LookupServlet
+        op: statuses
+        httpMethods:
+          - GET
+        jsps: []
+  /v1/orders:
+    get:
+      operationId: listOrders
+      tags:
+        - Sales Orders
+      summary: List orders
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - DRAFT
+              - SUBMITTED
+              - SHIPPED
+              - CANCELLED
+        - name: customerId
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int64
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+        - $ref: '#/components/parameters/Sort'
+      responses:
+        '200':
+          description: A page of orders
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      x-roles:
+        - manager
+        - sales
+      x-legacy-source:
+        module: sales
+        servlet: OrderServlet
+        op: list
+        httpMethods:
+          - GET
+        jsps:
+          - sales/src/main/webapp/orderList.jsp
+  /v1/orders/drafts:
+    post:
+      operationId: createOrderDraft
+      tags:
+        - Sales Orders
+      summary: Start an order draft
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderDraftCreateRequest'
+      responses:
+        '201':
+          description: Draft created
+          headers:
+            Location:
+              description: URI of the created resource.
+              schema:
+                type: string
+                format: uri-reference
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderDraft'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      x-roles:
+        - sales
+      x-legacy-source:
+        module: sales
+        servlet: OrderServlet
+        op: step1
+        httpMethods:
+          - POST
+        jsps:
+          - sales/src/main/webapp/wizardStep1.jsp
+          - sales/src/main/webapp/wizardStep2.jsp
+  /v1/orders/drafts/{draftId}:
+    patch:
+      operationId: updateOrderDraft
+      tags:
+        - Sales Orders
+      summary: Add a line to a draft
+      parameters:
+        - name: draftId
+          in: path
+          description: Draft identifier
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderDraftPatch'
+      responses:
+        '200':
+          description: Updated draft
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderDraft'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      x-roles:
+        - sales
+      x-legacy-source:
+        module: sales
+        servlet: OrderServlet
+        op: step2
+        httpMethods:
+          - PATCH
+        jsps:
+          - sales/src/main/webapp/wizardStep2.jsp
+  /v1/orders/drafts/{draftId}/submit:
+    post:
+      operationId: submitOrderDraft
+      tags:
+        - Sales Orders
+      summary: Submit a draft as an order
+      parameters:
+        - name: draftId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: Order created from the draft
+          headers:
+            Location:
+              description: URI of the created resource.
+              schema:
+                type: string
+                format: uri-reference
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      x-roles:
+        - sales
+      x-legacy-source:
+        module: sales
+        servlet: OrderServlet
+        op: confirm
+        httpMethods:
+          - POST
+        jsps:
+          - sales/src/main/webapp/wizardStep2.jsp
+  /v1/orders/export:
+    get:
+      operationId: exportOrders
+      tags:
+        - Sales Orders
+      summary: Export orders as CSV
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - DRAFT
+              - SUBMITTED
+              - SHIPPED
+              - CANCELLED
+      responses:
+        '200':
+          description: CSV file attachment named orders.csv
+          headers:
+            Content-Disposition:
+              description: Attachment file name of the download.
+              schema:
+                type: string
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      x-roles:
+        - manager
+        - sales
+      x-legacy-source:
+        module: sales
+        servlet: OrderServlet
+        op: export
+        httpMethods:
+          - GET
+        jsps:
+          - sales/src/main/webapp/orderList.jsp
+  /v1/profile:
+    get:
+      operationId: getProfile
+      tags:
+        - Accounts Profile
+      summary: Get the current profile
+      responses:
+        '200':
+          description: The profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      x-roles:
+        - admin
+        - user
+      x-legacy-source:
+        module: accounts
+        servlet: ProfileServlet
+        op: view
+        httpMethods:
+          - GET
+        jsps:
+          - accounts/src/main/webapp/userView.jsp
+    patch:
+      operationId: updateProfile
+      tags:
+        - Accounts Profile
+      summary: Update the current profile
+      parameters:
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserPatch'
+      responses:
+        '200':
+          description: Updated profile
+          headers:
+            ETag:
+              description: Entity tag of the current version.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      x-roles:
+        - admin
+        - user
+      x-legacy-source:
+        module: accounts
+        servlet: ProfileServlet
+        op: update
+        httpMethods:
+          - POST
+        jsps:
+          - accounts/src/main/webapp/userView.jsp
+  /v1/reports/daily:
+    get:
+      operationId: getDailyReport
+      tags:
+        - Sales Reports
+      summary: Totals for one day
+      parameters:
+        - name: day
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Daily totals
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DailyReport'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      x-roles:
+        - manager
+        - sales
+      x-legacy-source:
+        module: sales
+        servlet: ReportServlet
+        op: daily
+        httpMethods:
+          - GET
+        jsps:
+          - sales/src/main/webapp/report.jsp
+  /v1/reports/summary:
+    get:
+      operationId: getSalesSummary
+      tags:
+        - Sales Reports
+      summary: Sales summary between two dates
+      parameters:
+        - name: from
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Summary rows
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OrderSummaryDto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      x-roles:
+        - manager
+        - sales
+      x-legacy-source:
+        module: sales
+        servlet: ReportServlet
+        op: summary
+        httpMethods:
+          - GET
+        jsps:
+          - sales/src/main/webapp/report.jsp
+  /v1/users:
+    get:
+      operationId: listUsers
+      tags:
+        - Accounts Users
+      summary: List users
+      parameters:
+        - name: name
+          in: query
+          description: Case insensitive name filter
+          required: false
+          schema:
+            type: string
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+        - $ref: '#/components/parameters/Sort'
+      responses:
+        '200':
+          description: A page of users
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      x-roles:
+        - admin
+        - user
+      x-legacy-source:
+        module: accounts
+        servlet: UserServlet
+        op: list
+        httpMethods:
+          - GET
+        jsps:
+          - accounts/src/main/webapp/userList.jsp
+    post:
+      operationId: createUser
+      tags:
+        - Accounts Users
+      summary: Create a user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreateRequest'
+      responses:
+        '201':
+          description: User created
+          headers:
+            Location:
+              description: URI of the created resource.
+              schema:
+                type: string
+                format: uri-reference
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      x-roles:
+        - admin
+      x-legacy-source:
+        module: accounts
+        servlet: UserServlet
+        op: save
+        httpMethods:
+          - POST
+        jsps:
+          - accounts/src/main/webapp/userEdit.jsp
+  /v1/users/{userId}:
+    get:
+      operationId: getUser
+      tags:
+        - Accounts Users
+      summary: Get a user
+      parameters:
+        - name: userId
+          in: path
+          description: Opaque user identifier
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: The user
+          headers:
+            ETag:
+              description: Entity tag of the current version.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      x-roles:
+        - admin
+        - user
+      x-legacy-source:
+        module: accounts
+        servlet: UserServlet
+        op: read
+        httpMethods:
+          - GET
+        jsps:
+          - accounts/src/main/webapp/userView.jsp
+    put:
+      operationId: updateUser
+      tags:
+        - Accounts Users
+      summary: Replace a user
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdateRequest'
+      responses:
+        '200':
+          description: User updated
+          headers:
+            ETag:
+              description: Entity tag of the current version.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      x-roles:
+        - admin
+      x-legacy-source:
+        module: accounts
+        servlet: UserServlet
+        op: save
+        httpMethods:
+          - POST
+        jsps:
+          - accounts/src/main/webapp/userEdit.jsp
+    delete:
+      operationId: deleteUser
+      tags:
+        - Accounts Users
+      summary: Delete a user
+      parameters:
+        - name: userId
+          in: path
+          description: Opaque user identifier
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - $ref: '#/components/parameters/IfMatch'
+      responses:
+        '204':
+          description: No Content
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      x-roles:
+        - admin
+      x-legacy-source:
+        module: accounts
+        servlet: UserServlet
+        op: delete
+        httpMethods:
+          - POST
+        jsps:
+          - accounts/src/main/webapp/userList.jsp
+components:
+  schemas:
+    Country:
+      properties:
+        code:
+          description: ISO 3166 alpha-2
+          type: string
+        name:
+          type: string
+      type: object
+    DailyReport:
+      properties:
+        day:
+          format: date
+          type: string
+        orders:
+          type: integer
+        revenue:
+          description: Decimal string
+          format: decimal
+          type: string
+      type: object
+    Order:
+      properties:
+        customerId:
+          format: int64
+          type: integer
+        id:
+          format: int64
+          readOnly: true
+          type: integer
+        notes:
+          maxLength: 500
+          type: string
+        orderDate:
+          format: date-time
+          type: string
+        orderNumber:
+          maxLength: 13
+          pattern: ORD-[0-9]{4}-[0-9]{4}
+          type: string
+        status:
+          enum:
+            - DRAFT
+            - SUBMITTED
+            - SHIPPED
+            - CANCELLED
+          type: string
+        total:
+          format: decimal
+          type: string
+        version:
+          format: int64
+          readOnly: true
+          type: integer
+      required:
+        - customerId
+        - orderNumber
+        - status
+        - total
+      type: object
+    OrderDraft:
+      properties:
+        customerId:
+          format: int64
+          type: integer
+        lines:
+          items:
+            $ref: '#/components/schemas/OrderLine'
+          type: array
+        notes:
+          type: string
+      type: object
+    OrderDraftCreateRequest:
+      properties:
+        customerId:
+          format: int64
+          type: integer
+        lines:
+          items:
+            $ref: '#/components/schemas/OrderLine'
+          type: array
+        notes:
+          type: string
+      type: object
+    OrderDraftPatch:
+      properties:
+        quantity:
+          format: int32
+          type: integer
+        sku:
+          type: string
+        unitPrice:
+          description: Decimal string
+          format: decimal
+          type: string
+      required:
+        - quantity
+        - sku
+        - unitPrice
+      type: object
+    OrderLine:
+      properties:
+        id:
+          format: int64
+          readOnly: true
+          type: integer
+        orderId:
+          format: int64
+          type: integer
+        quantity:
+          format: int32
+          type: integer
+        sku:
+          maxLength: 20
+          pattern: '[A-Z0-9-]{3,20}'
+          type: string
+        unitPrice:
+          format: decimal
+          type: string
+      required:
+        - sku
+      type: object
+    OrderPage:
+      properties:
+        content:
+          items:
+            $ref: '#/components/schemas/Order'
+          type: array
+        page:
+          format: int32
+          minimum: 0
+          type: integer
+        size:
+          format: int32
+          minimum: 1
+          type: integer
+        totalElements:
+          format: int64
+          minimum: 0
+          type: integer
+        totalPages:
+          format: int32
+          minimum: 0
+          type: integer
+      required:
+        - content
+        - page
+        - size
+        - totalElements
+        - totalPages
+      type: object
+    OrderSummaryDto:
+      properties:
+        customerName:
+          type: string
+        lineCount:
+          format: int32
+          type: integer
+        orderNumber:
+          type: string
+        status:
+          type: string
+        total:
+          format: decimal
+          type: string
+      type: object
+    Problem:
+      description: Problem details (RFC 9457).
+      properties:
+        code:
+          description: 'Stable machine readable error code. Known codes: ORDER_EMPTY, USER_EMAIL_INVALID, USER_INUSE, USER_MODIFIED, USER_NAME_REQUIRED.'
+          enum:
+            - ORDER_EMPTY
+            - USER_EMAIL_INVALID
+            - USER_INUSE
+            - USER_MODIFIED
+            - USER_NAME_REQUIRED
+          type: string
+        detail:
+          type: string
+        errors:
+          items:
+            $ref: '#/components/schemas/ProblemError'
+          type: array
+        instance:
+          format: uri-reference
+          type: string
+        status:
+          format: int32
+          type: integer
+        title:
+          type: string
+        type:
+          format: uri-reference
+          type: string
+      required:
+        - status
+        - title
+      type: object
+    ProblemError:
+      description: One invalid field of a request.
+      properties:
+        code:
+          type: string
+        field:
+          type: string
+        message:
+          type: string
+      required:
+        - code
+        - message
+      type: object
+    User:
+      properties:
+        birthDate:
+          format: date-time
+          type: string
+        createdAt:
+          format: date-time
+          type: string
+        creditLimit:
+          format: decimal
+          type: string
+        email:
+          maxLength: 120
+          pattern: '[^@]+@[^@]+'
+          type: string
+        id:
+          format: int64
+          readOnly: true
+          type: integer
+        locale:
+          maxLength: 5
+          type: string
+        name:
+          maxLength: 80
+          minLength: 2
+          type: string
+        status:
+          enum:
+            - ACTIVE
+            - SUSPENDED
+            - CLOSED
+          type: string
+        version:
+          format: int64
+          readOnly: true
+          type: integer
+      required:
+        - email
+        - name
+        - status
+      type: object
+    UserCreateRequest:
+      properties:
+        birthDate:
+          format: date-time
+          type: string
+        createdAt:
+          format: date-time
+          type: string
+        creditLimit:
+          format: decimal
+          type: string
+        email:
+          maxLength: 120
+          pattern: '[^@]+@[^@]+'
+          type: string
+        locale:
+          maxLength: 5
+          type: string
+        name:
+          maxLength: 80
+          minLength: 2
+          type: string
+        status:
+          enum:
+            - ACTIVE
+            - SUSPENDED
+            - CLOSED
+          type: string
+      required:
+        - email
+        - name
+        - status
+      type: object
+    UserPage:
+      properties:
+        content:
+          items:
+            $ref: '#/components/schemas/User'
+          type: array
+        page:
+          format: int32
+          minimum: 0
+          type: integer
+        size:
+          format: int32
+          minimum: 1
+          type: integer
+        totalElements:
+          format: int64
+          minimum: 0
+          type: integer
+        totalPages:
+          format: int32
+          minimum: 0
+          type: integer
+      required:
+        - content
+        - page
+        - size
+        - totalElements
+        - totalPages
+      type: object
+    UserPatch:
+      properties:
+        displayName:
+          description: Mapped to User.name, max 80
+          type: string
+        email:
+          format: email
+          type: string
+        locale:
+          type: string
+      required:
+        - displayName
+      type: object
+    UserUpdateRequest:
+      properties:
+        birthDate:
+          format: date-time
+          type: string
+        createdAt:
+          format: date-time
+          type: string
+        creditLimit:
+          format: decimal
+          type: string
+        email:
+          maxLength: 120
+          pattern: '[^@]+@[^@]+'
+          type: string
+        locale:
+          maxLength: 5
+          type: string
+        name:
+          maxLength: 80
+          minLength: 2
+          type: string
+        status:
+          enum:
+            - ACTIVE
+            - SUSPENDED
+            - CLOSED
+          type: string
+      required:
+        - email
+        - name
+        - status
+      type: object
+  parameters:
+    IfMatch:
+      name: If-Match
+      in: header
+      description: Entity tag of the version the caller last saw.
+      required: true
+      schema:
+        type: string
+    Page:
+      name: page
+      in: query
+      description: Zero based page index.
+      required: false
+      schema:
+        type: integer
+        format: int32
+        minimum: 0
+        default: 0
+    Size:
+      name: size
+      in: query
+      description: Page size.
+      required: false
+      schema:
+        type: integer
+        format: int32
+        minimum: 1
+        maximum: 100
+        default: 20
+    Sort:
+      name: sort
+      in: query
+      description: Sort order as `field,asc` or `field,desc`; repeatable.
+      required: false
+      style: form
+      explode: true
+      schema:
+        type: array
+        items:
+          type: string
+  responses:
+    BadRequest:
+      description: The request is malformed or failed validation.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    Conflict:
+      description: The request conflicts with the current state of the resource.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    Forbidden:
+      description: The caller lacks a required role.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    InternalServerError:
+      description: Unexpected server error.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    NotFound:
+      description: The requested resource does not exist.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    PreconditionFailed:
+      description: The If-Match precondition failed (stale version).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    Unauthorized:
+      description: Authentication is missing or invalid.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
