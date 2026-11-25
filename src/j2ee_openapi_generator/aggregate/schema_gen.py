@@ -248,7 +248,8 @@ class SchemaGenerator:
             raise UnknownSchema(f"unknown schema {name!r}")
         if kind != "base" and ent.kind == "enum":
             raise UnknownSchema(f"enum {name!r} has no {kind} schema")
-        return sort_schema(self._build(name, kind))
+        result: dict[str, Any] = sort_schema(self._build(name, kind))
+        return result
 
     def components(self) -> dict[str, dict[str, Any]]:
         return {k: sort_schema(copy.deepcopy(self._schemas[k])) for k in sorted(self._schemas)}
@@ -264,7 +265,8 @@ class SchemaGenerator:
         names = sorted(r for r in req if r in props)
         if names:
             schema["required"] = names
-        return sort_schema(schema)
+        sorted_schema: dict[str, Any] = sort_schema(schema)
+        return sorted_schema
 
     def type_schema(
         self,

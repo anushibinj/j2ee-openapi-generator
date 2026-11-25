@@ -27,7 +27,7 @@ def dump_openapi(doc: dict[str, Any]) -> str:
     yaml.width = 1_000_000
     yaml.allow_unicode = True
     yaml.indent(mapping=2, sequence=4, offset=2)
-    yaml.representer.ignore_aliases = lambda *_a: True  # type: ignore[method-assign]
+    yaml.representer.ignore_aliases = lambda *_a: True
     buf = StringIO()
     yaml.dump(_prepare(doc), buf)
     text = buf.getvalue().replace("\r\n", "\n")
