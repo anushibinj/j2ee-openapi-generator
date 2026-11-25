@@ -393,6 +393,73 @@ def test_no_api_needed_rules() -> None:
     assert run(proposal(no_api_needed="x", lookups_needed=[lookup])) == []
 
 
+LICENSE_SOURCE = """\
+public class LicenseAdminServlet {
+    public void doPost(HttpServletRequest req, HttpServletResponse resp) {
+        String op = UtilRequest.getParameter(req, "op");
+        LicenseProperties(req, out);
+    }
+    public void LicenseProperties(HttpServletRequest req, PrintWriter out) {
+        eResolver.setVariable("AllCaseFolder", String.valueOf(LicenseCache.getCurrentMax(1)));
+        SystemSessionEJBLocal systemSession = getSystemSessionEjb();
+        List<LicenseGroupTO> groups = systemSession.getLicenseGroups();
+    }
+}
+"""
+PAGE_SOURCE = """\
+public class AdminServlet {
+    public void doGet(HttpServletRequest req, HttpServletResponse resp) {
+        req.getRequestDispatcher("/frameset.jsp").forward(req, resp);
+    }
+}
+"""
+
+
+def no_api(reason: str, **extra: Any) -> EndpointProposal:
+    return EndpointProposal(packet_id="m:FooServlet#get", no_api_needed=reason, **extra)
+
+
+def test_no_api_needed_rejected_when_code_reads_data() -> None:
+    packet = make_packet([render(SERVLET_FILE, LICENSE_SOURCE)], hint="NONE", shape="no_api_needed")
+    reasons = run(no_api("Default POST performs no action"), packet)
+    assert codes(reasons) == {"E-NOAPI-DATA"}
+    assert "LicenseCache.getCurrentMax" in reasons[0] or "getSystemSessionEjb" in reasons[0]
+
+
+def test_no_api_needed_rejected_on_indexer_action_hint() -> None:
+    """The indexer saw EJB calls (POST/action hint) even though no data line matched."""
+    packet = make_packet([render(SERVLET_FILE, PAGE_SOURCE)], hint="POST", shape="action")
+    packet.hints.reason = "default branch calls EJB methods; model as an action"
+    reasons = run(no_api("Renders admin UI frameset"), packet)
+    assert codes(reasons) == {"E-NOAPI-DATA"} and "calls EJB methods" in reasons[0]
+
+
+def test_no_api_needed_page_only_stays_valid() -> None:
+    packet = make_packet([render(SERVLET_FILE, PAGE_SOURCE)], hint="NONE", shape="no_api_needed")
+    assert run(no_api("Renders admin UI frameset, no data read or written"), packet) == []
+
+
+def test_no_api_needed_allowed_when_covered_elsewhere_or_with_lookups() -> None:
+    packet = make_packet([render(SERVLET_FILE, LICENSE_SOURCE)], hint="POST", shape="action")
+    covered = "Only loads the same record as op=read; covered by GET /licenses"
+    assert run(no_api(covered), packet) == []
+    lookup = {"type": "x", "reason": "r", "evidence": [ev(4, "LicenseProperties(req, out);")]}
+    assert run(no_api("form only", lookups_needed=[lookup]), packet) == []
+
+
+def test_no_api_data_check_ignores_non_source_chunks() -> None:
+    """Data access words in a JSP response or property chunk do not count."""
+    packet = make_packet(
+        [
+            render(SERVLET_FILE, PAGE_SOURCE),
+            render("m/page.jsp", "<% new LicenseDAO().get(); %>", "jsp_response"),
+        ],
+        hint="NONE",
+        shape="no_api_needed",
+    )
+    assert run(no_api("static page"), packet) == []
+
+
 def test_reasons_sorted() -> None:
     op = base_op()
     op["evidence"] = [ev(500, "x"), ev(4, "bogusThing")]
