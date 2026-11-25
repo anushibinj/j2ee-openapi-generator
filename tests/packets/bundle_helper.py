@@ -30,8 +30,6 @@ from j2ee_openapi_generator.index.webxml import build_web_index, merge_annotatio
 _URL_PATTERNS = re.compile(r'"([^"]*)"')
 
 
-
-
 def build_bundle(cfg: Config, workers: int = 1) -> IndexBundle:
     """Run inventory, web, java, dispatch, facts, ejb/entities, jsp, properties, links, access."""
     repo = cfg.repo_path
@@ -91,9 +89,7 @@ def build_bundle(cfg: Config, workers: int = 1) -> IndexBundle:
         elif f.kind == "properties":
             bundles.append(parse_properties(f.path, read_source(f.path)))
     jsps.sort(key=lambda j: j.file)
-    java_sources = {
-        f.path: read_source(f.path) for f in files if f.kind == "java"
-    }
+    java_sources = {f.path: read_source(f.path) for f in files if f.kind == "java"}
     props = build_properties_index(bundles, jsps, java_sources)
     links = link_references(jsps, web, params)
     logs = [p if p.is_absolute() else cfg.base_dir / p for p in map(Path, cfg.access_logs)]
