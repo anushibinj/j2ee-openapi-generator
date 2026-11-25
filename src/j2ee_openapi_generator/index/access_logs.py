@@ -32,7 +32,9 @@ def _split_module(web: WebIndex, path: str) -> tuple[ModuleRecord, str] | None:
     return None if best is None else (best[1], best[2])
 
 
-def _hit(line: str, web: WebIndex, dispatch_params: Sequence[str]) -> tuple[str, str | None] | None:
+def _hit(
+    line: str, web: WebIndex, dispatch_params: Sequence[str]
+) -> tuple[str, str, str | None] | None:
     m = _REQ.search(line)
     if not m:
         return None
@@ -54,13 +56,13 @@ def _hit(line: str, web: WebIndex, dispatch_params: Sequence[str]) -> tuple[str,
         if q.get(name):
             op = q[name][0]
             break
-    return hit[1], op
+    return module.name, hit[1], op
 
 
 def load_access_counts(
     paths: list[Path], web: WebIndex, dispatch_params: list[str]
 ) -> list[AccessCount]:
-    counts: dict[tuple[str, str | None], int] = {}
+    counts: dict[tuple[str, str, str | None], int] = {}
     for p in paths:
         try:
             text = p.read_text(encoding="utf-8", errors="replace")
@@ -74,12 +76,23 @@ def load_access_counts(
             if key is not None:
                 counts[key] = counts.get(key, 0) + 1
     return [
-        AccessCount(url_pattern=k[0], op=k[1], count=v)
-        for k, v in sorted(counts.items(), key=lambda kv: (kv[0][0], kv[0][1] or ""))
+        AccessCount(module=k[0], url_pattern=k[1], op=k[2], count=v)
+        for k, v in sorted(counts.items(), key=lambda kv: (kv[0][0], kv[0][1], kv[0][2] or ""))
     ]
 
 
-def usage_for(counts: Sequence[AccessCount], url_patterns: Sequence[str], op: str | None) -> int:
+def usage_for(
+    counts: Sequence[AccessCount],
+    url_patterns: Sequence[str],
+    op: str | None,
+    module: str | None = None,
+) -> int:
     """Total hits for any of the patterns; restricted to ``op`` when given, else all ops."""
     pats = set(url_patterns)
-    return sum(c.count for c in counts if c.url_pattern in pats and (op is None or c.op == op))
+    return sum(
+        c.count
+        for c in counts
+        if c.url_pattern in pats
+        and (op is None or c.op == op)
+        and (module is None or c.module == module)
+    )

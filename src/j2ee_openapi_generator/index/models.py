@@ -301,6 +301,7 @@ class LinkedRef(BaseModel):
 
 
 class AccessCount(BaseModel):
+    module: str = ""
     url_pattern: str
     op: str | None
     count: int
