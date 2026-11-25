@@ -1,0 +1,142 @@
+{
+  "packet_id": "accounts:UserServlet#list",
+  "operations": [
+    {
+      "http_method": "GET",
+      "path": "/users",
+      "summary": "List users with paging and an optional name filter",
+      "resource": "users",
+      "tag": "Accounts Users",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "page",
+          "legacy_name": "page",
+          "type": "integer",
+          "format": null,
+          "required": false,
+          "description": "Zero based page index",
+          "enum": [],
+          "default": 0,
+          "evidence": [
+            {
+              "claim": "page request parameter",
+              "file": "accounts/src/main/java/com/acme/accounts/web/UserServlet.java",
+              "line": 43,
+              "snippet": "int page = parseInt(request.getParameter(\"page\"), 0);"
+            }
+          ]
+        },
+        {
+          "name": "size",
+          "legacy_name": "size",
+          "type": "integer",
+          "format": null,
+          "required": false,
+          "description": "Page size",
+          "enum": [],
+          "default": 20,
+          "evidence": [
+            {
+              "claim": "size request parameter",
+              "file": "accounts/src/main/java/com/acme/accounts/web/UserServlet.java",
+              "line": 44,
+              "snippet": "int size = parseInt(request.getParameter(\"size\"), DEFAULT_PAGE_SIZE);"
+            }
+          ]
+        },
+        {
+          "name": "name",
+          "legacy_name": "name",
+          "type": "string",
+          "format": null,
+          "required": false,
+          "description": "Case insensitive name filter",
+          "enum": [],
+          "default": null,
+          "evidence": [
+            {
+              "claim": "name filter parameter",
+              "file": "accounts/src/main/java/com/acme/accounts/web/UserServlet.java",
+              "line": 45,
+              "snippet": "String name = request.getParameter(\"name\");"
+            }
+          ]
+        }
+      ],
+      "request_body": null,
+      "responses": [
+        {
+          "status": 200,
+          "description": "A page of users",
+          "content_type": "application/json",
+          "schema_ref": "User",
+          "fields": [],
+          "is_array": false,
+          "paginated": true,
+          "evidence": [
+            {
+              "claim": "users and total are returned to the page",
+              "file": "accounts/src/main/java/com/acme/accounts/web/UserServlet.java",
+              "line": 47,
+              "snippet": "request.setAttribute(\"users\", users);"
+            }
+          ]
+        }
+      ],
+      "roles": [
+        {
+          "name": "user",
+          "evidence": [
+            {
+              "claim": "EJB class level role list",
+              "file": "accounts/src/main/java/com/acme/accounts/ejb/UserManagerBean.java",
+              "line": 13,
+              "snippet": "@RolesAllowed({\"admin\", \"user\"})"
+            }
+          ]
+        },
+        {
+          "name": "admin",
+          "evidence": [
+            {
+              "claim": "EJB class level role list",
+              "file": "accounts/src/main/java/com/acme/accounts/ejb/UserManagerBean.java",
+              "line": 13,
+              "snippet": "@RolesAllowed({\"admin\", \"user\"})"
+            }
+          ]
+        }
+      ],
+      "idempotent": true,
+      "legacy_source": {
+        "module": "accounts",
+        "servlet": "UserServlet",
+        "op": "list",
+        "http_methods": [
+          "GET"
+        ],
+        "jsps": [
+          "accounts/src/main/webapp/userList.jsp"
+        ]
+      },
+      "ejb_methods": [
+        "com.acme.accounts.ejb.UserManagerLocal#findUsers(String,int,int)",
+        "com.acme.accounts.ejb.UserManagerLocal#countUsers(String)"
+      ],
+      "evidence": [
+        {
+          "claim": "list branch",
+          "file": "accounts/src/main/java/com/acme/accounts/web/UserServlet.java",
+          "line": 42,
+          "snippet": "if (\"list\".equals(op)) {"
+        }
+      ],
+      "hint_override_reason": null
+    }
+  ],
+  "no_api_needed": null,
+  "lookups_needed": [],
+  "open_questions": [],
+  "confidence": 0.85
+}

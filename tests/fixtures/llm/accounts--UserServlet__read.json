@@ -1,0 +1,122 @@
+{
+  "packet_id": "accounts:UserServlet#read",
+  "operations": [
+    {
+      "http_method": "GET",
+      "path": "/users/{userId}",
+      "summary": "Read one user",
+      "resource": "users",
+      "tag": "Accounts Users",
+      "path_params": [
+        {
+          "name": "userId",
+          "legacy_name": "id",
+          "type": "integer",
+          "format": "int64",
+          "required": true,
+          "description": "Opaque user identifier",
+          "enum": [],
+          "default": null,
+          "evidence": [
+            {
+              "claim": "legacy id parameter is a Long",
+              "file": "accounts/src/main/java/com/acme/accounts/web/UserServlet.java",
+              "line": 51,
+              "snippet": "Long id = Long.valueOf(request.getParameter(\"id\"));"
+            }
+          ]
+        }
+      ],
+      "query_params": [],
+      "request_body": null,
+      "responses": [
+        {
+          "status": 200,
+          "description": "The user",
+          "content_type": "application/json",
+          "schema_ref": "User",
+          "fields": [],
+          "is_array": false,
+          "paginated": false,
+          "evidence": [
+            {
+              "claim": "user is exposed to userView.jsp",
+              "file": "accounts/src/main/java/com/acme/accounts/web/UserServlet.java",
+              "line": 57,
+              "snippet": "request.setAttribute(\"user\", user);"
+            }
+          ]
+        },
+        {
+          "status": 404,
+          "description": "No user with this id",
+          "content_type": "application/json",
+          "schema_ref": "Problem",
+          "fields": [],
+          "is_array": false,
+          "paginated": false,
+          "evidence": [
+            {
+              "claim": "missing user answers 404",
+              "file": "accounts/src/main/java/com/acme/accounts/web/UserServlet.java",
+              "line": 54,
+              "snippet": "response.sendError(HttpServletResponse.SC_NOT_FOUND, \"User not found\");"
+            }
+          ]
+        }
+      ],
+      "roles": [
+        {
+          "name": "user",
+          "evidence": [
+            {
+              "claim": "EJB class level role list",
+              "file": "accounts/src/main/java/com/acme/accounts/ejb/UserManagerBean.java",
+              "line": 13,
+              "snippet": "@RolesAllowed({\"admin\", \"user\"})"
+            }
+          ]
+        },
+        {
+          "name": "admin",
+          "evidence": [
+            {
+              "claim": "EJB class level role list",
+              "file": "accounts/src/main/java/com/acme/accounts/ejb/UserManagerBean.java",
+              "line": 13,
+              "snippet": "@RolesAllowed({\"admin\", \"user\"})"
+            }
+          ]
+        }
+      ],
+      "idempotent": true,
+      "legacy_source": {
+        "module": "accounts",
+        "servlet": "UserServlet",
+        "op": "read",
+        "http_methods": [
+          "GET"
+        ],
+        "jsps": [
+          "accounts/src/main/webapp/userView.jsp"
+        ]
+      },
+      "ejb_methods": [
+        "com.acme.accounts.ejb.UserManagerLocal#findUser(Long)"
+      ],
+      "evidence": [
+        {
+          "claim": "read branch",
+          "file": "accounts/src/main/java/com/acme/accounts/web/UserServlet.java",
+          "line": 50,
+          "snippet": "} else if (\"read\".equalsIgnoreCase(op)) {"
+        }
+      ],
+      "hint_override_reason": null
+    }
+  ],
+  "no_api_needed": null,
+  "lookups_needed": [],
+  "open_questions": [],
+  "confidence": 0.85
+}

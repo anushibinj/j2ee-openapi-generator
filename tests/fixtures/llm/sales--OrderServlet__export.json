@@ -1,0 +1,116 @@
+{
+  "packet_id": "sales:OrderServlet#export",
+  "operations": [
+    {
+      "http_method": "GET",
+      "path": "/orders/export",
+      "summary": "Download orders as CSV",
+      "resource": "orders",
+      "tag": "Sales Orders",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "status",
+          "legacy_name": "status",
+          "type": "string",
+          "format": null,
+          "required": false,
+          "description": null,
+          "enum": [
+            "DRAFT",
+            "SUBMITTED",
+            "SHIPPED",
+            "CANCELLED"
+          ],
+          "default": null,
+          "evidence": [
+            {
+              "claim": "status filter",
+              "file": "sales/src/main/java/com/acme/sales/web/OrderServlet.java",
+              "line": 122,
+              "snippet": "String status = request.getParameter(\"status\");"
+            }
+          ]
+        }
+      ],
+      "request_body": null,
+      "responses": [
+        {
+          "status": 200,
+          "description": "CSV file attachment named orders.csv",
+          "content_type": "text/csv",
+          "schema_ref": "binary",
+          "fields": [],
+          "is_array": false,
+          "paginated": false,
+          "evidence": [
+            {
+              "claim": "CSV content type",
+              "file": "sales/src/main/java/com/acme/sales/web/OrderServlet.java",
+              "line": 123,
+              "snippet": "response.setContentType(\"text/csv\");"
+            },
+            {
+              "claim": "attachment download",
+              "file": "sales/src/main/java/com/acme/sales/web/OrderServlet.java",
+              "line": 124,
+              "snippet": "response.setHeader(\"Content-Disposition\", \"attachment; filename=\\\"orders.csv\\\"\");"
+            }
+          ]
+        }
+      ],
+      "roles": [
+        {
+          "name": "sales",
+          "evidence": [
+            {
+              "claim": "EJB class level role list",
+              "file": "sales/src/main/java/com/acme/sales/ejb/OrderManagerBean.java",
+              "line": 20,
+              "snippet": "@RolesAllowed({\"sales\", \"manager\"})"
+            }
+          ]
+        },
+        {
+          "name": "manager",
+          "evidence": [
+            {
+              "claim": "EJB class level role list",
+              "file": "sales/src/main/java/com/acme/sales/ejb/OrderManagerBean.java",
+              "line": 20,
+              "snippet": "@RolesAllowed({\"sales\", \"manager\"})"
+            }
+          ]
+        }
+      ],
+      "idempotent": true,
+      "legacy_source": {
+        "module": "sales",
+        "servlet": "OrderServlet",
+        "op": "export",
+        "http_methods": [
+          "GET"
+        ],
+        "jsps": [
+          "sales/src/main/webapp/orderList.jsp"
+        ]
+      },
+      "ejb_methods": [
+        "com.acme.sales.ejb.OrderManagerLocal#findOrders(String,Long,int,int)"
+      ],
+      "evidence": [
+        {
+          "claim": "export case",
+          "file": "sales/src/main/java/com/acme/sales/web/OrderServlet.java",
+          "line": 121,
+          "snippet": "case OP_EXPORT: {"
+        }
+      ],
+      "hint_override_reason": null
+    }
+  ],
+  "no_api_needed": null,
+  "lookups_needed": [],
+  "open_questions": [],
+  "confidence": 0.85
+}

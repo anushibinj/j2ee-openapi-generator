@@ -1,0 +1,170 @@
+{
+  "packet_id": "sales:OrderServlet#step2",
+  "operations": [
+    {
+      "http_method": "PATCH",
+      "path": "/orders/drafts/{draftId}",
+      "summary": "Add a line to an order draft (wizard step 2)",
+      "resource": "orders",
+      "tag": "Sales Orders",
+      "path_params": [
+        {
+          "name": "draftId",
+          "legacy_name": null,
+          "type": "string",
+          "format": null,
+          "required": true,
+          "description": "Draft identifier",
+          "enum": [],
+          "default": null,
+          "evidence": [
+            {
+              "claim": "the draft lives in the session; the API addresses it by id",
+              "file": "sales/src/main/java/com/acme/sales/web/OrderServlet.java",
+              "line": 96,
+              "snippet": "OrderDraft draft = (OrderDraft) session.getAttribute(\"orderDraft\");"
+            }
+          ]
+        }
+      ],
+      "query_params": [],
+      "request_body": {
+        "content_type": "application/json",
+        "schema_ref": "OrderDraftPatch",
+        "fields": [
+          {
+            "name": "sku",
+            "type": "string",
+            "format": null,
+            "required": true,
+            "description": null,
+            "enum": [],
+            "items_ref": null,
+            "evidence": [
+              {
+                "claim": "sku parameter",
+                "file": "sales/src/main/java/com/acme/sales/web/OrderServlet.java",
+                "line": 102,
+                "snippet": "line.setSku(request.getParameter(\"sku\"));"
+              }
+            ]
+          },
+          {
+            "name": "quantity",
+            "type": "integer",
+            "format": "int32",
+            "required": true,
+            "description": null,
+            "enum": [],
+            "items_ref": null,
+            "evidence": [
+              {
+                "claim": "quantity parameter",
+                "file": "sales/src/main/java/com/acme/sales/web/OrderServlet.java",
+                "line": 103,
+                "snippet": "line.setQuantity(Integer.parseInt(request.getParameter(\"quantity\")));"
+              }
+            ]
+          },
+          {
+            "name": "unitPrice",
+            "type": "string",
+            "format": "decimal",
+            "required": true,
+            "description": "Decimal string",
+            "enum": [],
+            "items_ref": null,
+            "evidence": [
+              {
+                "claim": "unit price parameter",
+                "file": "sales/src/main/java/com/acme/sales/web/OrderServlet.java",
+                "line": 104,
+                "snippet": "line.setUnitPrice(new BigDecimal(request.getParameter(\"unitPrice\")));"
+              }
+            ]
+          }
+        ],
+        "required": [
+          "sku",
+          "quantity",
+          "unitPrice"
+        ]
+      },
+      "responses": [
+        {
+          "status": 200,
+          "description": "Updated draft",
+          "content_type": "application/json",
+          "schema_ref": "OrderDraft",
+          "fields": [],
+          "is_array": false,
+          "paginated": false,
+          "evidence": [
+            {
+              "claim": "line is appended",
+              "file": "sales/src/main/java/com/acme/sales/web/OrderServlet.java",
+              "line": 105,
+              "snippet": "draft.getLines().add(line);"
+            }
+          ]
+        },
+        {
+          "status": 404,
+          "description": "No draft in progress",
+          "content_type": "application/json",
+          "schema_ref": "Problem",
+          "fields": [],
+          "is_array": false,
+          "paginated": false,
+          "evidence": [
+            {
+              "claim": "missing session draft is reported as not found by the API",
+              "file": "sales/src/main/java/com/acme/sales/web/OrderServlet.java",
+              "line": 98,
+              "snippet": "response.sendError(HttpServletResponse.SC_BAD_REQUEST, \"No order in progress\");"
+            }
+          ]
+        }
+      ],
+      "roles": [
+        {
+          "name": "sales",
+          "evidence": [
+            {
+              "claim": "POST /OrderServlet requires sales",
+              "file": "sales/src/main/webapp/WEB-INF/web.xml",
+              "line": 39,
+              "snippet": "<role-name>sales</role-name>"
+            }
+          ]
+        }
+      ],
+      "idempotent": false,
+      "legacy_source": {
+        "module": "sales",
+        "servlet": "OrderServlet",
+        "op": "step2",
+        "http_methods": [
+          "PATCH"
+        ],
+        "jsps": [
+          "sales/src/main/webapp/wizardStep2.jsp"
+        ]
+      },
+      "ejb_methods": [],
+      "evidence": [
+        {
+          "claim": "step2 case",
+          "file": "sales/src/main/java/com/acme/sales/web/OrderServlet.java",
+          "line": 95,
+          "snippet": "case OP_STEP2: {"
+        }
+      ],
+      "hint_override_reason": null
+    }
+  ],
+  "no_api_needed": null,
+  "lookups_needed": [],
+  "open_questions": [],
+  "confidence": 0.85
+}

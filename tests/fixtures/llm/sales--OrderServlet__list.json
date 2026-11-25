@@ -1,0 +1,165 @@
+{
+  "packet_id": "sales:OrderServlet#list",
+  "operations": [
+    {
+      "http_method": "GET",
+      "path": "/orders",
+      "summary": "List orders with paging and filters",
+      "resource": "orders",
+      "tag": "Sales Orders",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "page",
+          "legacy_name": "page",
+          "type": "integer",
+          "format": null,
+          "required": false,
+          "description": null,
+          "enum": [],
+          "default": 0,
+          "evidence": [
+            {
+              "claim": "page parameter",
+              "file": "sales/src/main/java/com/acme/sales/web/OrderServlet.java",
+              "line": 56,
+              "snippet": "int page = Integer.parseInt(request.getParameter(\"page\") == null ? \"0\" : request.getParameter(\"page\"));"
+            }
+          ]
+        },
+        {
+          "name": "size",
+          "legacy_name": "size",
+          "type": "integer",
+          "format": null,
+          "required": false,
+          "description": null,
+          "enum": [],
+          "default": 20,
+          "evidence": [
+            {
+              "claim": "size parameter",
+              "file": "sales/src/main/java/com/acme/sales/web/OrderServlet.java",
+              "line": 57,
+              "snippet": "int size = Integer.parseInt(request.getParameter(\"size\") == null ? \"20\" : request.getParameter(\"size\"));"
+            }
+          ]
+        },
+        {
+          "name": "status",
+          "legacy_name": "status",
+          "type": "string",
+          "format": null,
+          "required": false,
+          "description": null,
+          "enum": [
+            "DRAFT",
+            "SUBMITTED",
+            "SHIPPED",
+            "CANCELLED"
+          ],
+          "default": null,
+          "evidence": [
+            {
+              "claim": "status filter",
+              "file": "sales/src/main/java/com/acme/sales/web/OrderServlet.java",
+              "line": 58,
+              "snippet": "String status = request.getParameter(\"status\");"
+            }
+          ]
+        },
+        {
+          "name": "customerId",
+          "legacy_name": "customerId",
+          "type": "integer",
+          "format": "int64",
+          "required": false,
+          "description": null,
+          "enum": [],
+          "default": null,
+          "evidence": [
+            {
+              "claim": "customer filter",
+              "file": "sales/src/main/java/com/acme/sales/web/OrderServlet.java",
+              "line": 59,
+              "snippet": "String customerId = request.getParameter(\"customerId\");"
+            }
+          ]
+        }
+      ],
+      "request_body": null,
+      "responses": [
+        {
+          "status": 200,
+          "description": "A page of orders",
+          "content_type": "application/json",
+          "schema_ref": "Order",
+          "fields": [],
+          "is_array": false,
+          "paginated": true,
+          "evidence": [
+            {
+              "claim": "orders and total are returned to the page",
+              "file": "sales/src/main/java/com/acme/sales/web/OrderServlet.java",
+              "line": 61,
+              "snippet": "request.setAttribute(\"orders\", orderManager.findOrders(status, cid, page, size));"
+            }
+          ]
+        }
+      ],
+      "roles": [
+        {
+          "name": "sales",
+          "evidence": [
+            {
+              "claim": "EJB class level role list",
+              "file": "sales/src/main/java/com/acme/sales/ejb/OrderManagerBean.java",
+              "line": 20,
+              "snippet": "@RolesAllowed({\"sales\", \"manager\"})"
+            }
+          ]
+        },
+        {
+          "name": "manager",
+          "evidence": [
+            {
+              "claim": "EJB class level role list",
+              "file": "sales/src/main/java/com/acme/sales/ejb/OrderManagerBean.java",
+              "line": 20,
+              "snippet": "@RolesAllowed({\"sales\", \"manager\"})"
+            }
+          ]
+        }
+      ],
+      "idempotent": true,
+      "legacy_source": {
+        "module": "sales",
+        "servlet": "OrderServlet",
+        "op": "list",
+        "http_methods": [
+          "GET"
+        ],
+        "jsps": [
+          "sales/src/main/webapp/orderList.jsp"
+        ]
+      },
+      "ejb_methods": [
+        "com.acme.sales.ejb.OrderManagerLocal#findOrders(String,Long,int,int)",
+        "com.acme.sales.ejb.OrderManagerLocal#countOrders(String,Long)"
+      ],
+      "evidence": [
+        {
+          "claim": "list case",
+          "file": "sales/src/main/java/com/acme/sales/web/OrderServlet.java",
+          "line": 55,
+          "snippet": "case OP_LIST: {"
+        }
+      ],
+      "hint_override_reason": null
+    }
+  ],
+  "no_api_needed": null,
+  "lookups_needed": [],
+  "open_questions": [],
+  "confidence": 0.85
+}

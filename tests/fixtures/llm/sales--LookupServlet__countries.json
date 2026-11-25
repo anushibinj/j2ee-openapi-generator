@@ -1,0 +1,82 @@
+{
+  "packet_id": "sales:LookupServlet#countries",
+  "operations": [
+    {
+      "http_method": "GET",
+      "path": "/lookups/countries",
+      "summary": "Country reference data",
+      "resource": "lookups",
+      "tag": "Sales Lookups",
+      "path_params": [],
+      "query_params": [],
+      "request_body": null,
+      "responses": [
+        {
+          "status": 200,
+          "description": "Countries",
+          "content_type": "application/json",
+          "schema_ref": "Country",
+          "fields": [
+            {
+              "name": "code",
+              "type": "string",
+              "format": null,
+              "required": false,
+              "description": "ISO 3166 alpha-2",
+              "enum": [],
+              "items_ref": null,
+              "evidence": []
+            },
+            {
+              "name": "name",
+              "type": "string",
+              "format": null,
+              "required": false,
+              "description": null,
+              "enum": [],
+              "items_ref": null,
+              "evidence": []
+            }
+          ],
+          "is_array": true,
+          "paginated": false,
+          "evidence": [
+            {
+              "claim": "countries handler writes the JSON array",
+              "file": "sales/src/main/java/com/acme/sales/web/LookupServlet.java",
+              "line": 39,
+              "snippet": "private void writeCountries(HttpServletRequest request, HttpServletResponse response) throws IOException {"
+            }
+          ]
+        }
+      ],
+      "roles": [],
+      "idempotent": true,
+      "legacy_source": {
+        "module": "sales",
+        "servlet": "LookupServlet",
+        "op": "countries",
+        "http_methods": [
+          "GET"
+        ],
+        "jsps": [
+          "sales/src/main/webapp/wizardStep1.jsp"
+        ]
+      },
+      "ejb_methods": [],
+      "evidence": [
+        {
+          "claim": "map registered handler",
+          "file": "sales/src/main/java/com/acme/sales/web/LookupServlet.java",
+          "line": 24,
+          "snippet": "handlers.put(\"countries\", this::writeCountries);"
+        }
+      ],
+      "hint_override_reason": null
+    }
+  ],
+  "no_api_needed": null,
+  "lookups_needed": [],
+  "open_questions": [],
+  "confidence": 0.85
+}

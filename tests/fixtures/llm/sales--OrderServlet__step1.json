@@ -1,0 +1,129 @@
+{
+  "packet_id": "sales:OrderServlet#step1",
+  "operations": [
+    {
+      "http_method": "POST",
+      "path": "/orders/drafts",
+      "summary": "Start an order draft (wizard step 1)",
+      "resource": "orders",
+      "tag": "Sales Orders",
+      "path_params": [],
+      "query_params": [],
+      "request_body": {
+        "content_type": "application/json",
+        "schema_ref": "OrderDraftCreateRequest",
+        "fields": [
+          {
+            "name": "customerId",
+            "type": "integer",
+            "format": "int64",
+            "required": true,
+            "description": null,
+            "enum": [],
+            "items_ref": null,
+            "evidence": [
+              {
+                "claim": "customer is mandatory",
+                "file": "sales/src/main/java/com/acme/sales/web/OrderServlet.java",
+                "line": 85,
+                "snippet": "draft.setCustomerId(Long.valueOf(request.getParameter(\"customerId\")));"
+              }
+            ]
+          },
+          {
+            "name": "notes",
+            "type": "string",
+            "format": null,
+            "required": false,
+            "description": "Free text, max 500",
+            "enum": [],
+            "items_ref": null,
+            "evidence": [
+              {
+                "claim": "notes parameter",
+                "file": "sales/src/main/java/com/acme/sales/web/OrderServlet.java",
+                "line": 86,
+                "snippet": "draft.setNotes(request.getParameter(\"notes\"));"
+              }
+            ]
+          }
+        ],
+        "required": [
+          "customerId"
+        ]
+      },
+      "responses": [
+        {
+          "status": 201,
+          "description": "Draft created",
+          "content_type": "application/json",
+          "schema_ref": "OrderDraft",
+          "fields": [],
+          "is_array": false,
+          "paginated": false,
+          "evidence": [
+            {
+              "claim": "wizard state is held in the session; becomes a server side draft",
+              "file": "sales/src/main/java/com/acme/sales/web/OrderServlet.java",
+              "line": 88,
+              "snippet": "session.setAttribute(\"orderDraft\", draft);"
+            }
+          ]
+        }
+      ],
+      "roles": [
+        {
+          "name": "sales",
+          "evidence": [
+            {
+              "claim": "POST /OrderServlet requires sales",
+              "file": "sales/src/main/webapp/WEB-INF/web.xml",
+              "line": 39,
+              "snippet": "<role-name>sales</role-name>"
+            }
+          ]
+        }
+      ],
+      "idempotent": false,
+      "legacy_source": {
+        "module": "sales",
+        "servlet": "OrderServlet",
+        "op": "step1",
+        "http_methods": [
+          "POST"
+        ],
+        "jsps": [
+          "sales/src/main/webapp/wizardStep1.jsp",
+          "sales/src/main/webapp/wizardStep2.jsp"
+        ]
+      },
+      "ejb_methods": [],
+      "evidence": [
+        {
+          "claim": "step1 case",
+          "file": "sales/src/main/java/com/acme/sales/web/OrderServlet.java",
+          "line": 82,
+          "snippet": "case OP_STEP1: {"
+        }
+      ],
+      "hint_override_reason": null
+    }
+  ],
+  "no_api_needed": null,
+  "lookups_needed": [
+    {
+      "type": "countries",
+      "reason": "The wizard page fills its country select from the countries lookup.",
+      "evidence": [
+        {
+          "claim": "country select is loaded dynamically",
+          "file": "sales/src/main/webapp/wizardStep1.jsp",
+          "line": 19,
+          "snippet": "fetch('LookupServlet?op=countries')"
+        }
+      ]
+    }
+  ],
+  "open_questions": [],
+  "confidence": 0.85
+}

@@ -1,0 +1,124 @@
+{
+  "packet_id": "sales:OrderServlet#view",
+  "operations": [
+    {
+      "http_method": "GET",
+      "path": "/orders/{orderId}",
+      "summary": "Read one order by numeric id",
+      "resource": "orders",
+      "tag": "Sales Orders",
+      "path_params": [
+        {
+          "name": "orderId",
+          "legacy_name": "id",
+          "type": "integer",
+          "format": "int64",
+          "required": true,
+          "description": "Order identifier",
+          "enum": [],
+          "default": null,
+          "evidence": [
+            {
+              "claim": "legacy id parameter is a Long",
+              "file": "sales/src/main/java/com/acme/sales/web/OrderServlet.java",
+              "line": 67,
+              "snippet": "Order order = orderManager.findById(Long.valueOf(request.getParameter(\"id\")));"
+            }
+          ]
+        }
+      ],
+      "query_params": [],
+      "request_body": null,
+      "responses": [
+        {
+          "status": 200,
+          "description": "The order",
+          "content_type": "application/json",
+          "schema_ref": "Order",
+          "fields": [],
+          "is_array": false,
+          "paginated": false,
+          "evidence": [
+            {
+              "claim": "order is exposed to the page",
+              "file": "sales/src/main/java/com/acme/sales/web/OrderServlet.java",
+              "line": 72,
+              "snippet": "request.setAttribute(\"order\", order);"
+            }
+          ]
+        },
+        {
+          "status": 404,
+          "description": "No order with this id",
+          "content_type": "application/json",
+          "schema_ref": "Problem",
+          "fields": [],
+          "is_array": false,
+          "paginated": false,
+          "evidence": [
+            {
+              "claim": "missing order answers 404",
+              "file": "sales/src/main/java/com/acme/sales/web/OrderServlet.java",
+              "line": 69,
+              "snippet": "response.sendError(HttpServletResponse.SC_NOT_FOUND);"
+            }
+          ]
+        }
+      ],
+      "roles": [
+        {
+          "name": "sales",
+          "evidence": [
+            {
+              "claim": "EJB class level role list",
+              "file": "sales/src/main/java/com/acme/sales/ejb/OrderManagerBean.java",
+              "line": 20,
+              "snippet": "@RolesAllowed({\"sales\", \"manager\"})"
+            }
+          ]
+        },
+        {
+          "name": "manager",
+          "evidence": [
+            {
+              "claim": "EJB class level role list",
+              "file": "sales/src/main/java/com/acme/sales/ejb/OrderManagerBean.java",
+              "line": 20,
+              "snippet": "@RolesAllowed({\"sales\", \"manager\"})"
+            }
+          ]
+        }
+      ],
+      "idempotent": true,
+      "legacy_source": {
+        "module": "sales",
+        "servlet": "OrderServlet",
+        "op": "view",
+        "http_methods": [
+          "GET"
+        ],
+        "jsps": [
+          "sales/src/main/webapp/orderList.jsp"
+        ]
+      },
+      "ejb_methods": [
+        "com.acme.sales.ejb.OrderManagerLocal#findById(Long)"
+      ],
+      "evidence": [
+        {
+          "claim": "view case",
+          "file": "sales/src/main/java/com/acme/sales/web/OrderServlet.java",
+          "line": 66,
+          "snippet": "case OP_VIEW: {"
+        }
+      ],
+      "hint_override_reason": null
+    }
+  ],
+  "no_api_needed": null,
+  "lookups_needed": [],
+  "open_questions": [
+    "CONFLICT FIXTURE: sales:OrderServlet#detail also claims GET /orders/{orderId} with an incompatible shape."
+  ],
+  "confidence": 0.85
+}

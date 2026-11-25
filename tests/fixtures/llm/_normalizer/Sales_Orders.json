@@ -1,0 +1,53 @@
+{
+  "tag": "Sales Orders",
+  "operations": [
+    {
+      "key": "GET /orders",
+      "operation_id": "listOrders",
+      "summary": "List orders",
+      "description": null
+    },
+    {
+      "key": "GET /orders/{orderId}",
+      "operation_id": "getOrder",
+      "summary": "Get an order",
+      "description": null
+    },
+    {
+      "key": "GET /orders/by-number/{orderNumber}",
+      "operation_id": "getOrderByNumber",
+      "summary": "Get an order summary by number",
+      "description": null
+    },
+    {
+      "key": "POST /orders/drafts",
+      "operation_id": "createOrderDraft",
+      "summary": "Start an order draft",
+      "description": null
+    },
+    {
+      "key": "PATCH /orders/drafts/{draftId}",
+      "operation_id": "updateOrderDraft",
+      "summary": "Add a line to a draft",
+      "description": null
+    },
+    {
+      "key": "POST /orders/drafts/{draftId}/submit",
+      "operation_id": "submitOrderDraft",
+      "summary": "Submit a draft as an order",
+      "description": null
+    },
+    {
+      "key": "GET /orders/export",
+      "operation_id": "exportOrders",
+      "summary": "Export orders as CSV",
+      "description": null
+    }
+  ],
+  "tag_descriptions": [
+    {
+      "tag": "Sales Orders",
+      "description": "Operations of the sales orders area."
+    }
+  ]
+}

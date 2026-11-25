@@ -1,0 +1,111 @@
+{
+  "packet_id": "sales:OrderServlet#confirm",
+  "operations": [
+    {
+      "http_method": "POST",
+      "path": "/orders/drafts/{draftId}/submit",
+      "summary": "Submit a draft and create the order (wizard step 3)",
+      "resource": "orders",
+      "tag": "Sales Orders",
+      "path_params": [
+        {
+          "name": "draftId",
+          "legacy_name": null,
+          "type": "string",
+          "format": null,
+          "required": true,
+          "description": null,
+          "enum": [],
+          "default": null,
+          "evidence": [
+            {
+              "claim": "the draft lives in the session; the API addresses it by id",
+              "file": "sales/src/main/java/com/acme/sales/web/OrderServlet.java",
+              "line": 111,
+              "snippet": "OrderDraft draft = (OrderDraft) session.getAttribute(\"orderDraft\");"
+            }
+          ]
+        }
+      ],
+      "query_params": [],
+      "request_body": null,
+      "responses": [
+        {
+          "status": 201,
+          "description": "Order created from the draft",
+          "content_type": "application/json",
+          "schema_ref": "Order",
+          "fields": [],
+          "is_array": false,
+          "paginated": false,
+          "evidence": [
+            {
+              "claim": "confirm persists a new order",
+              "file": "sales/src/main/java/com/acme/sales/web/OrderServlet.java",
+              "line": 116,
+              "snippet": "Order order = orderManager.createFromDraft(draft);"
+            }
+          ]
+        },
+        {
+          "status": 404,
+          "description": "No draft in progress or draft has no lines",
+          "content_type": "application/json",
+          "schema_ref": "Problem",
+          "fields": [],
+          "is_array": false,
+          "paginated": false,
+          "evidence": [
+            {
+              "claim": "empty or missing draft cannot be confirmed",
+              "file": "sales/src/main/java/com/acme/sales/web/OrderServlet.java",
+              "line": 113,
+              "snippet": "response.sendError(HttpServletResponse.SC_BAD_REQUEST, \"Nothing to confirm\");"
+            }
+          ]
+        }
+      ],
+      "roles": [
+        {
+          "name": "sales",
+          "evidence": [
+            {
+              "claim": "createFromDraft is restricted to sales",
+              "file": "sales/src/main/java/com/acme/sales/ejb/OrderManagerBean.java",
+              "line": 53,
+              "snippet": "@RolesAllowed(\"sales\")"
+            }
+          ]
+        }
+      ],
+      "idempotent": false,
+      "legacy_source": {
+        "module": "sales",
+        "servlet": "OrderServlet",
+        "op": "confirm",
+        "http_methods": [
+          "POST"
+        ],
+        "jsps": [
+          "sales/src/main/webapp/wizardStep2.jsp"
+        ]
+      },
+      "ejb_methods": [
+        "com.acme.sales.ejb.OrderManagerLocal#createFromDraft(OrderDraft)"
+      ],
+      "evidence": [
+        {
+          "claim": "confirm case",
+          "file": "sales/src/main/java/com/acme/sales/web/OrderServlet.java",
+          "line": 110,
+          "snippet": "case OP_CONFIRM: {"
+        }
+      ],
+      "hint_override_reason": null
+    }
+  ],
+  "no_api_needed": null,
+  "lookups_needed": [],
+  "open_questions": [],
+  "confidence": 0.85
+}

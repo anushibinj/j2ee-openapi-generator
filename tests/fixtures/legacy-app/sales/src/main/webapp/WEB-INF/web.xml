@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns="http://xmlns.jcp.org/xml/ns/javaee" version="3.1">
+  <display-name>sales</display-name>
+
+  <servlet>
+    <servlet-name>OrderServlet</servlet-name>
+    <servlet-class>com.acme.sales.web.OrderServlet</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>OrderServlet</servlet-name>
+    <url-pattern>/OrderServlet</url-pattern>
+  </servlet-mapping>
+
+  <servlet>
+    <servlet-name>ReportServlet</servlet-name>
+    <servlet-class>com.acme.sales.web.ReportServlet</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>ReportServlet</servlet-name>
+    <url-pattern>/ReportServlet</url-pattern>
+  </servlet-mapping>
+
+  <servlet>
+    <servlet-name>LookupServlet</servlet-name>
+    <servlet-class>com.acme.sales.web.LookupServlet</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>LookupServlet</servlet-name>
+    <url-pattern>/LookupServlet</url-pattern>
+  </servlet-mapping>
+
+  <security-constraint>
+    <web-resource-collection>
+      <web-resource-name>Order changes</web-resource-name>
+      <url-pattern>/OrderServlet</url-pattern>
+      <http-method>POST</http-method>
+    </web-resource-collection>
+    <auth-constraint>
+      <role-name>sales</role-name>
+    </auth-constraint>
+  </security-constraint>
+
+  <security-role>
+    <role-name>sales</role-name>
+  </security-role>
+  <security-role>
+    <role-name>manager</role-name>
+  </security-role>
+</web-app>

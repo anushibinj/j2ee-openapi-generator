@@ -1,0 +1,41 @@
+{
+  "tag": "Accounts Users",
+  "operations": [
+    {
+      "key": "GET /users",
+      "operation_id": "listUsers",
+      "summary": "List users",
+      "description": null
+    },
+    {
+      "key": "POST /users",
+      "operation_id": "createUser",
+      "summary": "Create a user",
+      "description": null
+    },
+    {
+      "key": "GET /users/{userId}",
+      "operation_id": "getUser",
+      "summary": "Get a user",
+      "description": null
+    },
+    {
+      "key": "PUT /users/{userId}",
+      "operation_id": "updateUser",
+      "summary": "Replace a user",
+      "description": null
+    },
+    {
+      "key": "DELETE /users/{userId}",
+      "operation_id": "deleteUser",
+      "summary": "Delete a user",
+      "description": null
+    }
+  ],
+  "tag_descriptions": [
+    {
+      "tag": "Accounts Users",
+      "description": "Operations of the accounts users area."
+    }
+  ]
+}
