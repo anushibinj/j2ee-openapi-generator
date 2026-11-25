@@ -217,6 +217,6 @@ def config(version: str = "3.1.0", provenance: bool = True) -> Config:
             version=version,  # type: ignore[arg-type]
             title="Acme API",
             provenance=provenance,
-            servers=[{"url": "https://api.acme.example/"}],
+            servers=[{"url": "https://api.acme.example"}],
         ),
     )

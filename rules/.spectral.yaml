@@ -1,0 +1,82 @@
+# Spectral ruleset for the generated OpenAPI document.
+extends: ["spectral:oas"]
+
+rules:
+  info-contact: off
+  info-description: off
+  operation-operationId: error
+  operation-operationId-unique: error
+
+  oapi-path-prefix:
+    description: Paths must start with the /v1 version prefix.
+    severity: error
+    given: $.paths[*]~
+    then:
+      function: pattern
+      functionOptions:
+        match: "^/v1(/|$)"
+
+  oapi-path-kebab-case:
+    description: Literal path segments are lowercase kebab-case; parameters are camelCase templates.
+    severity: error
+    given: $.paths[*]~
+    then:
+      function: pattern
+      functionOptions:
+        match: "^(/([a-z0-9]+(-[a-z0-9]+)*|\\{[a-z][a-zA-Z0-9]*\\}))+$"
+
+  oapi-path-no-verbs:
+    description: Resource segments must not be verbs; use an action sub-resource after an id.
+    severity: warn
+    given: $.paths[*]~
+    then:
+      function: pattern
+      functionOptions:
+        notMatch: "/(get|list|create|delete|update|save|read)(/|$)"
+
+  oapi-property-camel-case:
+    description: Schema property names are camelCase.
+    severity: warn
+    given:
+      - $.components.schemas..properties[*]~
+      - $.paths..properties[*]~
+    then:
+      function: pattern
+      functionOptions:
+        match: "^[a-z][a-zA-Z0-9]*$"
+
+  oapi-operation-has-4xx:
+    description: Every operation documents at least one 4xx response.
+    severity: error
+    given: $.paths[*][get,put,post,delete,patch].responses
+    then:
+      function: schema
+      functionOptions:
+        schema:
+          type: object
+          not:
+            propertyNames:
+              not:
+                pattern: "^4([0-9]{2}|XX)$"
+
+  oapi-operation-has-5xx:
+    description: Every operation documents at least one 5xx response.
+    severity: error
+    given: $.paths[*][get,put,post,delete,patch].responses
+    then:
+      function: schema
+      functionOptions:
+        schema:
+          type: object
+          not:
+            propertyNames:
+              not:
+                pattern: "^5([0-9]{2}|XX)$"
+
+  oapi-error-problem-json:
+    description: Error responses use application/problem+json.
+    severity: error
+    given: $.paths[*][get,put,post,delete,patch].responses[?(@property.match(/^[45]/))].content
+    then:
+      field: application/problem+json
+      function: truthy
