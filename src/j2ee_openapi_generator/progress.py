@@ -115,13 +115,13 @@ class Metrics:
             t = Table(
                 "purpose",
                 "calls",
-                "cache hits",
+                "cached",
                 "failed",
-                "repaired",
-                "prompt tok",
-                "completion tok",
-                "total tok",
-                "avg latency",
+                "repair",
+                "tok in",
+                "tok out",
+                "tok total",
+                "avg time",
                 title="Run metrics: LLM",
             )
             us = self.usage

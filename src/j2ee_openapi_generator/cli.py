@@ -10,6 +10,7 @@ from rich.table import Table
 
 from j2ee_openapi_generator import pipeline
 from j2ee_openapi_generator.config import Config, load_config
+from j2ee_openapi_generator.progress import metrics
 
 app = typer.Typer(help="Deterministic J2EE to OpenAPI contract extractor.", no_args_is_help=True)
 console = Console()
@@ -21,7 +22,14 @@ def _cfg(path: Path) -> Config:
     if not path.exists():
         typer.echo(f"config not found: {path}", err=True)
         raise typer.Exit(2)
+    metrics.reset()
     return load_config(path)
+
+
+def _summary() -> None:
+    """Print stage timings, token usage and counts collected during this command."""
+    for table in metrics.summary_tables():
+        console.print(table)
 
 
 @app.command()
@@ -29,6 +37,7 @@ def index(config: Path = ConfigOpt) -> None:
     """Stage 1: build indexes and work packets (no LLM)."""
     b = pipeline.run_index(_cfg(config))
     console.print(f"indexed {len(b.files)} files, {len(b.dispatch)} entry points")
+    _summary()
 
 
 @app.command()
@@ -40,6 +49,7 @@ def analyze(
 ) -> None:
     """Stage 2: LLM map over packets."""
     console.print(pipeline.stage_analyze(_cfg(config), only=only, offline=offline, force=force))
+    _summary()
 
 
 @app.command()
@@ -48,6 +58,7 @@ def verify(config: Path = ConfigOpt) -> None:
     cfg = _cfg(config)
     counts = pipeline.stage_verify(cfg)
     console.print(counts)
+    _summary()
     from j2ee_openapi_generator.verify.verifier import rejected_feedback
     from j2ee_openapi_generator.workspace import Workspace
 
@@ -65,6 +76,7 @@ def aggregate(
     """Stage 4: merge into the SQLite store."""
     for w in pipeline.stage_aggregate(_cfg(config), resolve_with_llm=resolve_with_llm):
         console.print(f"warning: {w}")
+    _summary()
 
 
 @app.command()
@@ -76,18 +88,21 @@ def normalize(
     """Stage 5: naming normalization."""
     n = pipeline.stage_normalize(_cfg(config), offline=offline, force=force)
     console.print(f"normalize finished with {n} issue(s)")
+    _summary()
 
 
 @app.command()
 def emit(config: Path = ConfigOpt) -> None:
     """Stage 6: write out/openapi.yml."""
     console.print(str(pipeline.stage_emit(_cfg(config))))
+    _summary()
 
 
 @app.command()
 def report(config: Path = ConfigOpt) -> None:
     """Stage 7: coverage and open-question reports."""
     pipeline.stage_report(_cfg(config))
+    _summary()
 
 
 @app.command()
@@ -118,6 +133,7 @@ def run(
     cfg = _cfg(config)
     pipeline.run_all(cfg, offline=offline, force=force)
     console.print(f"wrote {cfg.out_path / 'openapi.yml'}")
+    _summary()
 
 
 @app.command()

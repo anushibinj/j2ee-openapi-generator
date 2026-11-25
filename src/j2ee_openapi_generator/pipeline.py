@@ -28,6 +28,7 @@ from j2ee_openapi_generator.index.models import (
 )
 from j2ee_openapi_generator.index.properties import build_properties_index, parse_properties
 from j2ee_openapi_generator.index.webxml import build_web_index, merge_annotation_servlets
+from j2ee_openapi_generator.progress import ProgressTracker, metrics
 from j2ee_openapi_generator.workspace import Workspace, load_index_bundle, save_index_bundle
 
 if TYPE_CHECKING:
@@ -110,21 +111,40 @@ def build_index(cfg: Config, workers: int | None = None) -> IndexBundle:
     w = workers or cfg.worker_count()
     repo = cfg.repo_path
     read = make_reader(repo)
+    metrics.log(f"index: scanning {repo} with {w} worker(s)")
     inv = build_inventory(cfg, w)
+    kinds: dict[str, int] = {}
+    for f in inv:
+        kinds[f.kind] = kinds.get(f.kind, 0) + 1
+    metrics.log(
+        f"index: inventory done, {len(inv)} files ("
+        + ", ".join(f"{k}={n}" for k, n in sorted(kinds.items()))
+        + ")"
+    )
     web = build_web_index(cfg, inv)
+    metrics.log(
+        f"index: web.xml parsed, {len(web.modules)} module(s), {len(web.servlets)} servlet(s)"
+    )
+    metrics.log(f"index: parsing {kinds.get('java', 0)} java file(s)")
     java = build_java_index(cfg, inv, w)
+    metrics.log(f"index: java symbols done, {len(java.classes)} class(es)")
     file_module = {f.path: f.module for f in inv if f.module}
     web = merge_annotation_servlets(web, annotated_servlets(java, file_module))
     dispatch = extract_dispatch(cfg, java, web.servlets, read)
+    metrics.log(f"index: {len(dispatch)} dispatch entry point(s) found")
 
     ejb_jars = sorted(f.path for f in inv if f.kind == "ejb_xml")
     ejbs = build_ejb_registry(java, read, ejb_jars)
     entities = build_entity_registry(java, ejbs)
     domain = DomainIndex(ejbs=ejbs, entities=entities)
+    metrics.log(f"index: domain registry done, {len(ejbs)} EJB(s), {len(entities)} entities")
 
     jsp_files = {f.path for f in inv if f.kind == "jsp"}
     roots = {m.name: m.root_dir for m in web.modules}
     facts: list[DispatchEntry] = []
+    tracker = ProgressTracker(
+        "index: branch facts", len(dispatch), every=max(1, len(dispatch) // 20)
+    )
     for e in dispatch:
         root = roots.get(e.module, "")
         e.facts = compute_branch_facts(e, java, read, ejbs, root, jsp_files)
@@ -133,6 +153,7 @@ def build_index(cfg: Config, workers: int | None = None) -> IndexBundle:
             pre = compute_branch_facts(prelude, java, read, ejbs, root, jsp_files)
             e.facts.ejb_calls = sorted({*e.facts.ejb_calls, *pre.ejb_calls})
         facts.append(e)
+        tracker.advance()
 
     params = cfg.dispatch.param_names
     items = [
@@ -140,6 +161,7 @@ def build_index(cfg: Config, workers: int | None = None) -> IndexBundle:
         for f in inv
         if f.kind in ("jsp", "js")
     ]
+    metrics.log(f"index: parsing {len(items)} JSP/JS file(s)")
     jsps = sorted(_map(_jsp_worker, items, w), key=lambda j: j.file)
 
     bundles: list[PropertiesBundle] = [
@@ -150,6 +172,7 @@ def build_index(cfg: Config, workers: int | None = None) -> IndexBundle:
     links = link_references(jsps, web, params)
     logs = [Path(p) if Path(p).is_absolute() else cfg.base_dir / p for p in cfg.access_logs]
     access = load_access_counts(logs, web, params)
+    metrics.log(f"index: linked references, {len(logs)} access log(s) read")
     return IndexBundle(
         files=inv,
         web=web,
@@ -166,11 +189,19 @@ def build_index(cfg: Config, workers: int | None = None) -> IndexBundle:
 def run_index(cfg: Config) -> IndexBundle:
     ws = Workspace(cfg)
     ws.ensure()
-    bundle = build_index(cfg)
-    save_index_bundle(ws, bundle)
+    with metrics.stage("index"):
+        bundle = build_index(cfg)
+        save_index_bundle(ws, bundle)
     from j2ee_openapi_generator.packets.builder import build_packets, write_packets
 
-    write_packets(ws, build_packets(cfg, bundle, cfg.worker_count()))
+    with metrics.stage("packets"):
+        metrics.log(f"packets: building for {len(bundle.dispatch)} entry point(s)")
+        packets = build_packets(cfg, bundle, cfg.worker_count())
+        write_packets(ws, packets)
+        metrics.log(f"packets: wrote {len(packets)} packet(s)")
+    metrics.set_count("files indexed", len(bundle.files))
+    metrics.set_count("entry points", len(bundle.dispatch))
+    metrics.set_count("work packets", len(packets))
     return bundle
 
 
@@ -184,8 +215,12 @@ def stage_analyze(
     ws = Workspace(cfg)
     ws.ensure()
     client = make_client(cfg)
-    recs = analyze_sync(cfg, client, ws, only=only, offline=offline, force=force)
-    return analysis_summary(recs)
+    with metrics.stage("analyze"):
+        recs = analyze_sync(cfg, client, ws, only=only, offline=offline, force=force)
+    summary = analysis_summary(recs)
+    metrics.set_count("proposals ok", summary["ok"])
+    metrics.set_count("proposals failed", summary["failed"])
+    return summary
 
 
 def stage_verify(cfg: Config) -> dict[str, int]:
@@ -193,10 +228,13 @@ def stage_verify(cfg: Config) -> dict[str, int]:
 
     ws = Workspace(cfg)
     bundle = load_index_bundle(ws)
-    out = verify_all(cfg, ws, bundle, cfg.worker_count())
+    with metrics.stage("verify"):
+        metrics.log("verify: checking proposals against the index")
+        out = verify_all(cfg, ws, bundle, cfg.worker_count())
     counts: dict[str, int] = {}
     for v in out:
         counts[v.status] = counts.get(v.status, 0) + 1
+    metrics.log("verify: " + ", ".join(f"{k}={n}" for k, n in sorted(counts.items())))
     return counts
 
 
@@ -210,16 +248,17 @@ def stage_reanalyze(cfg: Config, *, offline: bool = False, force: bool = False) 
     fb = rejected_feedback(ws)
     if not fb:
         return 0
-    analyze_sync(
-        cfg,
-        make_client(cfg),
-        ws,
-        offline=offline,
-        force=force,
-        attempt=2,
-        feedback=fb,
-        only_ids=set(fb),
-    )
+    with metrics.stage("re-analyze rejected"):
+        analyze_sync(
+            cfg,
+            make_client(cfg),
+            ws,
+            offline=offline,
+            force=force,
+            attempt=2,
+            feedback=fb,
+            only_ids=set(fb),
+        )
     return len(fb)
 
 
@@ -232,10 +271,12 @@ def stage_aggregate(
     ws = Workspace(cfg)
     bundle = load_index_bundle(ws)
     client = make_client(cfg) if resolve_with_llm else None
-    store, warnings = run_aggregate(
-        cfg, ws, bundle, client=client, resolve_with_llm=resolve_with_llm, offline=offline
-    )
-    store.close()
+    with metrics.stage("aggregate"):
+        store, warnings = run_aggregate(
+            cfg, ws, bundle, client=client, resolve_with_llm=resolve_with_llm, offline=offline
+        )
+        store.close()
+    metrics.set_count("aggregate warnings", len(warnings))
     return warnings
 
 
@@ -247,7 +288,8 @@ def stage_normalize(cfg: Config, *, offline: bool = False, force: bool = False) 
     ws = Workspace(cfg)
     store = Store(ws.db_path)
     try:
-        report = normalize_sync(cfg, make_client(cfg), ws, store, offline=offline, force=force)
+        with metrics.stage("normalize"):
+            report = normalize_sync(cfg, make_client(cfg), ws, store, offline=offline, force=force)
     finally:
         store.close()
     return len(report.errors)
@@ -272,9 +314,15 @@ def stage_emit(cfg: Config) -> Path:
 
     ws = Workspace(cfg)
     ws.out_dir.mkdir(parents=True, exist_ok=True)
-    doc = build_openapi(load_snapshot(cfg), cfg)
-    path = ws.out_dir / "openapi.yml"
-    write_openapi(doc, path)
+    with metrics.stage("emit"):
+        snap = load_snapshot(cfg)
+        doc = build_openapi(snap, cfg)
+        path = ws.out_dir / "openapi.yml"
+        write_openapi(doc, path)
+        metrics.log(f"emit: wrote {path}")
+    paths = doc.get("paths", {}) if isinstance(doc, dict) else {}
+    metrics.set_count("api paths", len(paths))
+    metrics.set_count("operations", sum(len(v) for v in paths.values() if isinstance(v, dict)))
     return path
 
 
@@ -283,14 +331,16 @@ def stage_report(cfg: Config) -> None:
 
     ws = Workspace(cfg)
     ws.out_dir.mkdir(parents=True, exist_ok=True)
-    write_reports(load_snapshot(cfg), ws.out_dir)
+    with metrics.stage("report"):
+        write_reports(load_snapshot(cfg), ws.out_dir)
 
 
 def stage_validate(cfg: Config, baseline: Path | None = None) -> list[ValidationResult]:
     from j2ee_openapi_generator.report.validate import validate_openapi
 
     ws = Workspace(cfg)
-    return validate_openapi(ws.out_dir / "openapi.yml", baseline)
+    with metrics.stage("validate"):
+        return validate_openapi(ws.out_dir / "openapi.yml", baseline)
 
 
 def run_all(cfg: Config, *, offline: bool = False, force: bool = False) -> None:
