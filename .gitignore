@@ -10,3 +10,4 @@ out/
 *.egg-info/
 .oapi-test/
 out-test/
+oapi.yaml
