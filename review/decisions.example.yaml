@@ -1,0 +1,19 @@
+# Copy to review/decisions.yaml and commit it. Keys are packet IDs or conflict IDs.
+version: 1
+decisions:
+  - key: "accounts:UserServlet#save"
+    action: override            # accept | override | drop | rename_path
+    reason: "Legacy save always replaces the whole user"
+    overrides:
+      summary: "Replace a user"
+  - key: "sales:OrderServlet#step1"
+    action: rename_path
+    new_path: /orders/drafts
+    reason: "Align with the draft convention"
+  - key: "sales:ReportServlet#daily"
+    action: drop
+    reason: "Replaced by the BI platform"
+  - key: "c-1a2b3c4d"           # a conflict ID from out/conflicts.md
+    action: accept
+    chosen_packet_id: "sales:OrderServlet#confirm"
+    reason: "Confirm is the canonical creator"

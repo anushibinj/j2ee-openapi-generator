@@ -1,0 +1,35 @@
+repo_root: /path/to/monorepo
+modules:                 # optional; auto-discovered from every WEB-INF/web.xml if omitted
+  - name: toolbox
+    web_xml: toolbox/src/main/webapp/WEB-INF/web.xml
+    context_root: /toolbox
+    tag_prefix: Toolbox
+include_globs: ["**/*.java", "**/*.jsp", "**/*.jspf", "**/*.tag", "**/web.xml", "**/ejb-jar.xml", "**/*.properties", "**/*.js"]
+exclude_globs: ["**/test/**", "**/target/**", "**/build/**", "**/node_modules/**", "**/generated/**"]
+dispatch:
+  param_names: [op, action, cmd]
+  method_name_patterns: ["do{Op}", "handle{Op}", "{op}"]
+access_logs: []          # optional JBoss/Apache access logs, used for usage counts
+openapi:
+  version: "3.1.0"       # or "3.0.3"
+  title: "Product API"
+  api_prefix: /v1
+  servers: [{ url: "https://api.example.com" }]
+  provenance: true       # emit x-legacy-source on every operation
+llm:
+  base_url: ${LLM_BASE_URL}
+  api_key: ${LLM_API_KEY}
+  model: ${LLM_MODEL}
+  context_tokens: 32000
+  max_output_tokens: 4096
+  temperature: 0
+  seed: 42               # sent only if the server accepts it
+  structured_mode: json_schema   # json_schema | tools | json_object | prompt_only
+  max_concurrency: 4
+  timeout_s: 180
+  max_retries: 3
+work_dir: .oapi
+out_dir: out
+review_dir: review
+style_guide: style-guide/api-style-guide.md
+workers: auto            # process pool size for index, packets and verify
