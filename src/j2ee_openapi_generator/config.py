@@ -44,6 +44,7 @@ class LLMConfig(BaseModel):
     model: str = "model"
     context_tokens: int = 32000
     max_output_tokens: int = 4096
+    never_trim: bool = False  # never drop context chunks; split packets instead when over budget
     temperature: float = 0.0
     seed: int | None = 42
     structured_mode: StructuredMode = "json_schema"

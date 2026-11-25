@@ -489,7 +489,7 @@ def _build(
         hints=hints,
         usage_count=usage,
     )
-    return fit_packet(packet, token_budget(cfg.llm, prompt_tokens))
+    return fit_packet(packet, token_budget(cfg.llm, prompt_tokens), cfg.llm.never_trim)
 
 
 # ------------------------------------------------------------------ parallel driver

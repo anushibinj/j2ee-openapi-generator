@@ -221,15 +221,18 @@ def _assemble(
 
 
 # ------------------------------------------------------------------ fit
-def fit_packet(packet: WorkPacket, budget: int) -> list[WorkPacket]:
+def fit_packet(packet: WorkPacket, budget: int, never_trim: bool = False) -> list[WorkPacket]:
     """Return ``[packet]`` when it fits, else trim, else split into partial sub-packets.
 
     Trim order: ``ejb_impl`` chunks (last first), then ``jsp_response``, then ``helper``.
-    Branch chunks are never trimmed.
+    Branch chunks are never trimmed. With ``never_trim`` no chunk is dropped: an oversized
+    packet is split into partial sub-packets instead.
     """
     current = packet
     if packet_tokens(current) <= budget:
         return [finalize(current)]
+    if never_trim:
+        return split_packet(current, budget)
     trimmed = list(packet.trimmed)
     for role in TRIM_ORDER:
         while packet_tokens(current.model_copy(update={"trimmed": trimmed})) > budget:

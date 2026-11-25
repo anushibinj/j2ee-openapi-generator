@@ -22,6 +22,7 @@ llm:
   model: ${LLM_MODEL}
   context_tokens: 32000
   max_output_tokens: 4096
+  never_trim: false      # true: never drop context chunks, split packets instead
   temperature: 0
   seed: 42               # sent only if the server accepts it
   structured_mode: json_schema   # json_schema | tools | json_object | prompt_only
