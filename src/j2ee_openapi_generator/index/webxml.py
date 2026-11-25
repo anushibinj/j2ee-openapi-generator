@@ -244,9 +244,7 @@ def _rank(pattern: str, path: str) -> tuple[int, int] | None:
     return (3, len(pattern))
 
 
-def resolve_with_pattern(
-    web: WebIndex, module: str, path: str
-) -> tuple[ServletRecord, str] | None:
+def resolve_with_pattern(web: WebIndex, module: str, path: str) -> tuple[ServletRecord, str] | None:
     """Best servlet and the pattern that matched: exact > longest prefix > extension > default."""
     best: tuple[tuple[int, int], ServletRecord, str] | None = None
     for s in web.servlets:
@@ -274,9 +272,7 @@ def _overlaps(constraint_pat: str, servlet_pat: str) -> bool:
     )
 
 
-def constraints_for(
-    module: ModuleRecord, url_patterns: Sequence[str]
-) -> list[SecurityConstraint]:
+def constraints_for(module: ModuleRecord, url_patterns: Sequence[str]) -> list[SecurityConstraint]:
     """Constraints of the module whose patterns cover (or lie inside) any servlet pattern."""
     return [
         c

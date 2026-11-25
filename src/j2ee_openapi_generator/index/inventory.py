@@ -114,7 +114,7 @@ def build_inventory(cfg: Config, workers: int = 1) -> list[FileRecord]:
     else:
         hashed = [_hash_one(j) for j in jobs]
     files = [
-        FileRecord(path=rel, sha256=sha, size=size, kind=classify(rel))  # type: ignore[arg-type]
+        FileRecord(path=rel, sha256=sha, size=size, kind=classify(rel))
         for rel, sha, size in sorted(hashed)
     ]
     return assign_modules(files, discover_modules(cfg, files))
