@@ -1,0 +1,7 @@
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+<fmt:setBundle basename="messages"/>
+<div class="header">
+  <a href="UserServlet?op=list"><fmt:message key="menu.users"/></a>
+  <a href="profile?op=view"><fmt:message key="menu.profile"/></a>
+</div>
