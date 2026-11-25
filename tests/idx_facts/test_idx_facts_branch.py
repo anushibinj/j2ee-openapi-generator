@@ -188,3 +188,35 @@ def test_reflection_methods(java: JavaIndex, ejbs: list[EjbRecord]) -> None:
 
 def test_deterministic(java: JavaIndex, ejbs: list[EjbRecord]) -> None:
     assert user(java, ejbs, 68, 69) == user(java, ejbs, 68, 69)
+
+
+def test_wrapper_get_parameter_names_are_collected() -> None:
+    """``Util.getParameter(req, "x")`` records ``x``, not the request variable."""
+    from j2ee_openapi_generator.index.java_symbols import parse_java_file, resolve_index
+
+    src = """package t;
+import javax.servlet.http.*;
+public class W extends HttpServlet {
+    void a(HttpServletRequest req) {
+        String key = UtilRequest.getParameter(req, "LicenseValue");
+        String one = req.getParameter("plain");
+        String[] many = UtilRequest.getParameterValues(req, "ids");
+    }
+}
+"""
+    classes = {c.fqcn: c for c in parse_java_file("t/W.java", src)}
+    idx = JavaIndex(classes=dict(sorted(classes.items())))
+    resolve_index(idx)
+    entry = DispatchEntry(
+        module="m",
+        servlet_fqcn="t.W",
+        op="x",
+        param_name="op",
+        style="if",
+        file="t/W.java",
+        start_line=4,
+        end_line=8,
+    )
+    f = compute_branch_facts(entry, idx, lambda p: src, [], "m", set())
+    assert f.params == ["LicenseValue", "plain"]
+    assert f.multi_params == ["ids"]
