@@ -11,7 +11,13 @@ from collections.abc import Callable
 
 from lxml import etree
 
-from j2ee_openapi_generator.index.models import ClassInfo, EjbMethod, EjbRecord, JavaIndex, MethodInfo
+from j2ee_openapi_generator.index.models import (
+    ClassInfo,
+    EjbMethod,
+    EjbRecord,
+    JavaIndex,
+    MethodInfo,
+)
 
 SESSION_KINDS: dict[str, str] = {
     "Stateless": "stateless",
@@ -107,7 +113,9 @@ def unquote(text: str) -> str:
     m = _STR_RE.fullmatch(text.strip())
     if not m:
         return text.strip()
-    return re.sub(r"\\(.)", lambda mm: {"n": "\n", "t": "\t"}.get(mm.group(1), mm.group(1)), m.group(1))
+    return re.sub(
+        r"\\(.)", lambda mm: {"n": "\n", "t": "\t"}.get(mm.group(1), mm.group(1)), m.group(1)
+    )
 
 
 def string_literals(text: str) -> list[str]:
@@ -231,29 +239,39 @@ def _tx_value(ann: str | None) -> str | None:
     return m.group(1) if m else None
 
 
-def _xml_beans(read_source: Callable[[str], str], files: list[str]) -> list[dict[str, object]]:
-    beans: list[dict[str, object]] = []
+def _xml_texts(el: etree._Element, tag: str) -> list[str]:
+    res = el.xpath(f"./*[local-name()='{tag}']/text()")
+    items: list[object] = list(res) if isinstance(res, list) else []
+    return [str(r).strip() for r in items if str(r).strip()]
+
+
+def _xml_beans(
+    read_source: Callable[[str], str], files: list[str]
+) -> list[tuple[str, str, list[str]]]:
+    """(ejb-class, kind, interfaces) of every session / message-driven bean in the descriptors."""
+    beans: list[tuple[str, str, list[str]]] = []
     for f in sorted(files):
         try:
             root = etree.fromstring(read_source(f).encode("utf-8"))
         except (etree.XMLSyntaxError, ValueError):
             continue
-        for el in root.xpath("//*[local-name()='session' or local-name()='message-driven']"):
-            def txt(tag: str, el: etree._Element = el) -> list[str]:
-                res = el.xpath(f"./*[local-name()='{tag}']/text()")
-                return [str(r).strip() for r in res if str(r).strip()]
-
-            cls = txt("ejb-class")
+        found = root.xpath("//*[local-name()='session' or local-name()='message-driven']")
+        elements: list[etree._Element] = (
+            [e for e in found if isinstance(e, etree._Element)] if isinstance(found, list) else []
+        )
+        for el in elements:
+            cls = _xml_texts(el, "ejb-class")
             if not cls:
                 continue
-            st = txt("session-type")
-            kind = "message-driven" if etree.QName(el).localname == "message-driven" else (
-                _XML_KINDS.get(st[0].lower(), "other") if st else "other"
-            )
+            st = _xml_texts(el, "session-type")
+            if etree.QName(el).localname == "message-driven":
+                kind = "message-driven"
+            else:
+                kind = _XML_KINDS.get(st[0].lower(), "other") if st else "other"
             ifaces: list[str] = []
             for tag in ("business-local", "business-remote", "local", "remote"):
-                ifaces.extend(txt(tag))
-            beans.append({"cls": cls[0], "kind": kind, "ifaces": ifaces})
+                ifaces.extend(_xml_texts(el, tag))
+            beans.append((cls[0], kind, ifaces))
     return beans
 
 
@@ -338,13 +356,11 @@ def build_ejb_registry(
             n = ann_name(a)
             if n in SESSION_KINDS:
                 kinds[fq] = SESSION_KINDS[n]
-    for bean in _xml_beans(read_source, ejb_jar_files):
-        cls = str(bean["cls"])
-        ci = java.classes.get(cls)
-        if ci is None:
+    for cls, xml_kind, xml_list in _xml_beans(read_source, ejb_jar_files):
+        if cls not in java.classes:
             continue
-        kinds.setdefault(cls, str(bean["kind"]))
-        xml_ifaces.setdefault(cls, []).extend(str(i) for i in bean["ifaces"])  # type: ignore[attr-defined]
+        kinds.setdefault(cls, xml_kind)
+        xml_ifaces.setdefault(cls, []).extend(xml_list)
 
     records: list[EjbRecord] = []
     for fq in sorted(kinds):
@@ -355,7 +371,10 @@ def build_ejb_registry(
             if ic is not None:
                 ifaces[ic.fqcn] = ic
             else:
-                ifaces.setdefault(name, ClassInfo(fqcn=name, simple_name=name.rsplit(".", 1)[-1], package="", file=""))
+                ifaces.setdefault(
+                    name,
+                    ClassInfo(fqcn=name, simple_name=name.rsplit(".", 1)[-1], package="", file=""),
+                )
         iface_list = [ifaces[k] for k in sorted(ifaces)]
         class_roles = roles_of(find_ann(ci.annotations, "RolesAllowed"))
 
@@ -375,7 +394,9 @@ def build_ejb_registry(
             for m in publics:
                 key = (m.name, len(m.params))
                 if key in iface_methods:
-                    methods.append(_ejb_method(m, ci.annotations, iface_methods[key].throws, class_roles))
+                    methods.append(
+                        _ejb_method(m, ci.annotations, iface_methods[key].throws, class_roles)
+                    )
                     seen.add(key)
             for key, im in sorted(iface_methods.items(), key=lambda kv: (kv[1].start_line, kv[0])):
                 if key not in seen:
@@ -387,7 +408,7 @@ def build_ejb_registry(
         records.append(
             EjbRecord(
                 bean_fqcn=fq,
-                kind=kinds[fq],  # type: ignore[arg-type]
+                kind=kinds[fq],
                 interfaces=[ic.fqcn for ic in iface_list],
                 interface_files={ic.fqcn: ic.file for ic in iface_list if ic.file},
                 impl_file=ci.file,

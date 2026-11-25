@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-
 from j2ee_openapi_generator.index.ejb import (
     all_type_names,
     ann_args,
@@ -94,7 +93,7 @@ def _make_field(java: JavaIndex, owner: ClassInfo, f: FieldInfo) -> EntityField:
         pattern=pattern,
         enumerated=find_ann(anns, "Enumerated") is not None,
         enum_values=enum_values,
-        relationship=relationship,  # type: ignore[arg-type]
+        relationship=relationship,
         target_type=target,
         transient=transient,
         line=f.line,
@@ -159,7 +158,7 @@ def build_entity_registry(java: JavaIndex, ejbs: list[EjbRecord]) -> list[Entity
         records[ci.fqcn] = EntityRecord(
             fqcn=ci.fqcn,
             simple_name=ci.simple_name,
-            kind=kind,  # type: ignore[arg-type]
+            kind=kind,
             file=ci.file,
             start_line=ci.start_line,
             end_line=ci.end_line,
@@ -191,7 +190,14 @@ def build_entity_registry(java: JavaIndex, ejbs: list[EjbRecord]) -> list[Entity
             frontier.append((ci, depth))
 
     for rec in sorted(ejbs, key=lambda r: r.bean_fqcn):
-        ctxs = [c for c in [java.classes.get(rec.bean_fqcn), *(java.classes.get(i) for i in rec.interfaces)] if c]
+        ctxs = [
+            c
+            for c in [
+                java.classes.get(rec.bean_fqcn),
+                *(java.classes.get(i) for i in rec.interfaces),
+            ]
+            if c
+        ]
         for m in rec.methods:
             for p in _param_types(m.signature):
                 consider(ctxs, p, 0)
@@ -213,11 +219,11 @@ def build_entity_registry(java: JavaIndex, ejbs: list[EjbRecord]) -> list[Entity
                 consider([c], f.type, depth + 1)
 
     # enums referenced by the fields of every record
-    for rec in sorted(list(records.values()), key=lambda r: r.fqcn):
-        owner = java.classes.get(rec.fqcn)
-        if owner is None or rec.kind == "enum":
+    for er in sorted(list(records.values()), key=lambda r: r.fqcn):
+        owner = java.classes.get(er.fqcn)
+        if owner is None or er.kind == "enum":
             continue
-        for ef in rec.fields:
+        for ef in er.fields:
             for name in all_type_names(ef.java_type):
                 tc = resolve_class(java, owner, name)
                 if tc is not None and tc.kind == "enum":
