@@ -1,0 +1,8 @@
+{
+  "packet_id": "accounts:UserServlet#edit",
+  "operations": [],
+  "no_api_needed": "Only loads the same user as op=read into the edit form; an API client uses GET /users/{userId} then PUT.",
+  "lookups_needed": [],
+  "open_questions": [],
+  "confidence": 0.8
+}

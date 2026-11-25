@@ -1,0 +1,123 @@
+{
+  "packet_id": "sales:ReportServlet#summary",
+  "operations": [
+    {
+      "http_method": "GET",
+      "path": "/reports/summary",
+      "summary": "Order summaries between two dates",
+      "resource": "reports",
+      "tag": "Sales Reports",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "from",
+          "legacy_name": "from",
+          "type": "string",
+          "format": "date",
+          "required": true,
+          "description": null,
+          "enum": [],
+          "default": null,
+          "evidence": [
+            {
+              "claim": "from date",
+              "file": "sales/src/main/java/com/acme/sales/web/ReportServlet.java",
+              "line": 23,
+              "snippet": "String from = request.getParameter(\"from\");"
+            }
+          ]
+        },
+        {
+          "name": "to",
+          "legacy_name": "to",
+          "type": "string",
+          "format": "date",
+          "required": true,
+          "description": null,
+          "enum": [],
+          "default": null,
+          "evidence": [
+            {
+              "claim": "to date",
+              "file": "sales/src/main/java/com/acme/sales/web/ReportServlet.java",
+              "line": 24,
+              "snippet": "String to = request.getParameter(\"to\");"
+            }
+          ]
+        }
+      ],
+      "request_body": null,
+      "responses": [
+        {
+          "status": 200,
+          "description": "Summary rows",
+          "content_type": "application/json",
+          "schema_ref": "OrderSummaryDto",
+          "fields": [],
+          "is_array": true,
+          "paginated": false,
+          "evidence": [
+            {
+              "claim": "summary list is exposed",
+              "file": "sales/src/main/java/com/acme/sales/web/ReportServlet.java",
+              "line": 25,
+              "snippet": "request.setAttribute(\"summary\", orderManager.summarize(from, to));"
+            }
+          ]
+        }
+      ],
+      "roles": [
+        {
+          "name": "sales",
+          "evidence": [
+            {
+              "claim": "EJB class level role list",
+              "file": "sales/src/main/java/com/acme/sales/ejb/OrderManagerBean.java",
+              "line": 20,
+              "snippet": "@RolesAllowed({\"sales\", \"manager\"})"
+            }
+          ]
+        },
+        {
+          "name": "manager",
+          "evidence": [
+            {
+              "claim": "EJB class level role list",
+              "file": "sales/src/main/java/com/acme/sales/ejb/OrderManagerBean.java",
+              "line": 20,
+              "snippet": "@RolesAllowed({\"sales\", \"manager\"})"
+            }
+          ]
+        }
+      ],
+      "idempotent": true,
+      "legacy_source": {
+        "module": "sales",
+        "servlet": "ReportServlet",
+        "op": "summary",
+        "http_methods": [
+          "GET"
+        ],
+        "jsps": [
+          "sales/src/main/webapp/report.jsp"
+        ]
+      },
+      "ejb_methods": [
+        "com.acme.sales.ejb.OrderManagerLocal#summarize(String,String)"
+      ],
+      "evidence": [
+        {
+          "claim": "doSummary found by reflective dispatch",
+          "file": "sales/src/main/java/com/acme/sales/web/ReportServlet.java",
+          "line": 21,
+          "snippet": "public void doSummary(HttpServletRequest request, HttpServletResponse response)"
+        }
+      ],
+      "hint_override_reason": null
+    }
+  ],
+  "no_api_needed": null,
+  "lookups_needed": [],
+  "open_questions": [],
+  "confidence": 0.85
+}

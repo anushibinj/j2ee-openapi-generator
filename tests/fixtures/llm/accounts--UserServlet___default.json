@@ -1,0 +1,8 @@
+{
+  "packet_id": "accounts:UserServlet#<default>",
+  "operations": [],
+  "no_api_needed": "Unknown or missing op redirects to op=list; covered by GET /users.",
+  "lookups_needed": [],
+  "open_questions": [],
+  "confidence": 0.9
+}

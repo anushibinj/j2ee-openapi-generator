@@ -1,0 +1,375 @@
+{
+  "packet_id": "accounts:UserServlet#save",
+  "operations": [
+    {
+      "http_method": "POST",
+      "path": "/users",
+      "summary": "Create a user",
+      "resource": "users",
+      "tag": "Accounts Users",
+      "path_params": [],
+      "query_params": [],
+      "request_body": {
+        "content_type": "application/json",
+        "schema_ref": "UserCreateRequest",
+        "fields": [
+          {
+            "name": "name",
+            "type": "string",
+            "format": null,
+            "required": true,
+            "description": "Display name, 2 to 80 chars",
+            "enum": [],
+            "items_ref": null,
+            "evidence": [
+              {
+                "claim": "name is mandatory",
+                "file": "accounts/src/main/java/com/acme/accounts/web/UserServlet.java",
+                "line": 86,
+                "snippet": "String name = request.getParameter(\"name\");"
+              }
+            ]
+          },
+          {
+            "name": "email",
+            "type": "string",
+            "format": "email",
+            "required": true,
+            "description": "Unique e-mail address",
+            "enum": [],
+            "items_ref": null,
+            "evidence": [
+              {
+                "claim": "email is validated",
+                "file": "accounts/src/main/java/com/acme/accounts/web/UserServlet.java",
+                "line": 87,
+                "snippet": "String email = request.getParameter(\"email\");"
+              }
+            ]
+          },
+          {
+            "name": "status",
+            "type": "string",
+            "format": null,
+            "required": false,
+            "description": null,
+            "enum": [
+              "ACTIVE",
+              "SUSPENDED",
+              "CLOSED"
+            ],
+            "items_ref": null,
+            "evidence": [
+              {
+                "claim": "status is an enum name",
+                "file": "accounts/src/main/java/com/acme/accounts/web/UserServlet.java",
+                "line": 88,
+                "snippet": "String status = request.getParameter(\"status\");"
+              }
+            ]
+          },
+          {
+            "name": "birthDate",
+            "type": "string",
+            "format": "date",
+            "required": false,
+            "description": null,
+            "enum": [],
+            "items_ref": null,
+            "evidence": [
+              {
+                "claim": "birth date parameter",
+                "file": "accounts/src/main/java/com/acme/accounts/web/UserServlet.java",
+                "line": 89,
+                "snippet": "String birthDate = request.getParameter(\"birthDate\");"
+              }
+            ]
+          }
+        ],
+        "required": [
+          "name",
+          "email"
+        ]
+      },
+      "responses": [
+        {
+          "status": 201,
+          "description": "User created",
+          "content_type": "application/json",
+          "schema_ref": "User",
+          "fields": [],
+          "is_array": false,
+          "paginated": false,
+          "evidence": [
+            {
+              "claim": "create branch when id is absent",
+              "file": "accounts/src/main/java/com/acme/accounts/web/UserServlet.java",
+              "line": 108,
+              "snippet": "user = userManager.create(user);"
+            }
+          ]
+        },
+        {
+          "status": 400,
+          "description": "Validation failed",
+          "content_type": "application/json",
+          "schema_ref": "Problem",
+          "fields": [],
+          "is_array": false,
+          "paginated": false,
+          "evidence": [
+            {
+              "claim": "invalid e-mail is a 400",
+              "file": "accounts/src/main/java/com/acme/accounts/web/UserServlet.java",
+              "line": 97,
+              "snippet": "response.sendError(HttpServletResponse.SC_BAD_REQUEST, \"Invalid email\");"
+            }
+          ]
+        }
+      ],
+      "roles": [
+        {
+          "name": "admin",
+          "evidence": [
+            {
+              "claim": "security-constraint on POST /UserServlet requires admin",
+              "file": "accounts/src/main/webapp/WEB-INF/web.xml",
+              "line": 35,
+              "snippet": "<role-name>admin</role-name>"
+            }
+          ]
+        }
+      ],
+      "idempotent": false,
+      "legacy_source": {
+        "module": "accounts",
+        "servlet": "UserServlet",
+        "op": "save",
+        "http_methods": [
+          "POST"
+        ],
+        "jsps": [
+          "accounts/src/main/webapp/userEdit.jsp"
+        ]
+      },
+      "ejb_methods": [
+        "com.acme.accounts.ejb.UserManagerLocal#create(User)"
+      ],
+      "evidence": [
+        {
+          "claim": "no id means create",
+          "file": "accounts/src/main/java/com/acme/accounts/web/UserServlet.java",
+          "line": 100,
+          "snippet": "boolean creating = idParam == null || idParam.isEmpty();"
+        }
+      ],
+      "hint_override_reason": null
+    },
+    {
+      "http_method": "PUT",
+      "path": "/users/{userId}",
+      "summary": "Replace a user",
+      "resource": "users",
+      "tag": "Accounts Users",
+      "path_params": [
+        {
+          "name": "userId",
+          "legacy_name": "id",
+          "type": "integer",
+          "format": "int64",
+          "required": true,
+          "description": null,
+          "enum": [],
+          "default": null,
+          "evidence": [
+            {
+              "claim": "id selects the user to update",
+              "file": "accounts/src/main/java/com/acme/accounts/web/UserServlet.java",
+              "line": 85,
+              "snippet": "String idParam = request.getParameter(\"id\");"
+            }
+          ]
+        }
+      ],
+      "query_params": [],
+      "request_body": {
+        "content_type": "application/json",
+        "schema_ref": "UserUpdateRequest",
+        "fields": [
+          {
+            "name": "name",
+            "type": "string",
+            "format": null,
+            "required": true,
+            "description": "Display name, 2 to 80 chars",
+            "enum": [],
+            "items_ref": null,
+            "evidence": [
+              {
+                "claim": "name is mandatory",
+                "file": "accounts/src/main/java/com/acme/accounts/web/UserServlet.java",
+                "line": 86,
+                "snippet": "String name = request.getParameter(\"name\");"
+              }
+            ]
+          },
+          {
+            "name": "email",
+            "type": "string",
+            "format": "email",
+            "required": true,
+            "description": "Unique e-mail address",
+            "enum": [],
+            "items_ref": null,
+            "evidence": [
+              {
+                "claim": "email is validated",
+                "file": "accounts/src/main/java/com/acme/accounts/web/UserServlet.java",
+                "line": 87,
+                "snippet": "String email = request.getParameter(\"email\");"
+              }
+            ]
+          },
+          {
+            "name": "status",
+            "type": "string",
+            "format": null,
+            "required": false,
+            "description": null,
+            "enum": [
+              "ACTIVE",
+              "SUSPENDED",
+              "CLOSED"
+            ],
+            "items_ref": null,
+            "evidence": [
+              {
+                "claim": "status is an enum name",
+                "file": "accounts/src/main/java/com/acme/accounts/web/UserServlet.java",
+                "line": 88,
+                "snippet": "String status = request.getParameter(\"status\");"
+              }
+            ]
+          },
+          {
+            "name": "birthDate",
+            "type": "string",
+            "format": "date",
+            "required": false,
+            "description": null,
+            "enum": [],
+            "items_ref": null,
+            "evidence": [
+              {
+                "claim": "birth date parameter",
+                "file": "accounts/src/main/java/com/acme/accounts/web/UserServlet.java",
+                "line": 89,
+                "snippet": "String birthDate = request.getParameter(\"birthDate\");"
+              }
+            ]
+          }
+        ],
+        "required": [
+          "name",
+          "email"
+        ]
+      },
+      "responses": [
+        {
+          "status": 200,
+          "description": "User updated",
+          "content_type": "application/json",
+          "schema_ref": "User",
+          "fields": [],
+          "is_array": false,
+          "paginated": false,
+          "evidence": [
+            {
+              "claim": "update branch when id present",
+              "file": "accounts/src/main/java/com/acme/accounts/web/UserServlet.java",
+              "line": 110,
+              "snippet": "user = userManager.update(user, Long.valueOf(version));"
+            }
+          ]
+        },
+        {
+          "status": 404,
+          "description": "No user with this id",
+          "content_type": "application/json",
+          "schema_ref": "Problem",
+          "fields": [],
+          "is_array": false,
+          "paginated": false,
+          "evidence": [
+            {
+              "claim": "unknown id on update",
+              "file": "accounts/src/main/java/com/acme/accounts/web/UserServlet.java",
+              "line": 101,
+              "snippet": "User user = creating ? new User() : userManager.findUser(Long.valueOf(idParam));"
+            }
+          ]
+        },
+        {
+          "status": 412,
+          "description": "Version precondition failed (If-Match)",
+          "content_type": "application/json",
+          "schema_ref": "Problem",
+          "fields": [],
+          "is_array": false,
+          "paginated": false,
+          "evidence": [
+            {
+              "claim": "stale @Version is rejected",
+              "file": "accounts/src/main/java/com/acme/accounts/web/UserServlet.java",
+              "line": 112,
+              "snippet": "} catch (OptimisticLockException e) {"
+            }
+          ]
+        }
+      ],
+      "roles": [
+        {
+          "name": "admin",
+          "evidence": [
+            {
+              "claim": "security-constraint on POST /UserServlet requires admin",
+              "file": "accounts/src/main/webapp/WEB-INF/web.xml",
+              "line": 35,
+              "snippet": "<role-name>admin</role-name>"
+            }
+          ]
+        }
+      ],
+      "idempotent": true,
+      "legacy_source": {
+        "module": "accounts",
+        "servlet": "UserServlet",
+        "op": "save",
+        "http_methods": [
+          "POST"
+        ],
+        "jsps": [
+          "accounts/src/main/webapp/userEdit.jsp"
+        ]
+      },
+      "ejb_methods": [
+        "com.acme.accounts.ejb.UserManagerLocal#update(User,Long)"
+      ],
+      "evidence": [
+        {
+          "claim": "optimistic lock version travels with the form",
+          "file": "accounts/src/main/java/com/acme/accounts/web/UserServlet.java",
+          "line": 90,
+          "snippet": "String version = request.getParameter(\"version\");"
+        }
+      ],
+      "hint_override_reason": null
+    }
+  ],
+  "no_api_needed": null,
+  "lookups_needed": [],
+  "open_questions": [
+    "The legacy form posts the @Version as a hidden field; the API carries it as If-Match."
+  ],
+  "confidence": 0.85
+}

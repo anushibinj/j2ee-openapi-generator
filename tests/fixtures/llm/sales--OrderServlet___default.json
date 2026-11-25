@@ -1,0 +1,8 @@
+{
+  "packet_id": "sales:OrderServlet#<default>",
+  "operations": [],
+  "no_api_needed": "Unknown op redirects to op=list; covered by GET /orders.",
+  "lookups_needed": [],
+  "open_questions": [],
+  "confidence": 0.9
+}

@@ -1,0 +1,11 @@
+{
+  "suggestions": [
+    {
+      "conflict_id": "GET /orders/{}",
+      "action": "rename_path",
+      "chosen_packet_id": "sales:OrderServlet#detail",
+      "new_path": "/orders/by-number/{orderNumber}",
+      "rationale": "view addresses an order by numeric id and detail by order number; keep view on /orders/{orderId} and move detail to a distinct literal prefix."
+    }
+  ]
+}

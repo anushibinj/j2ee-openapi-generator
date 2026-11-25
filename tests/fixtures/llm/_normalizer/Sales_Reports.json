@@ -1,0 +1,23 @@
+{
+  "tag": "Sales Reports",
+  "operations": [
+    {
+      "key": "GET /reports/summary",
+      "operation_id": "getSalesSummary",
+      "summary": "Sales summary between two dates",
+      "description": null
+    },
+    {
+      "key": "GET /reports/daily",
+      "operation_id": "getDailyReport",
+      "summary": "Totals for one day",
+      "description": null
+    }
+  ],
+  "tag_descriptions": [
+    {
+      "tag": "Sales Reports",
+      "description": "Operations of the sales reports area."
+    }
+  ]
+}

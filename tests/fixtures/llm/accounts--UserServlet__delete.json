@@ -1,0 +1,134 @@
+{
+  "packet_id": "accounts:UserServlet#delete",
+  "operations": [
+    {
+      "http_method": "DELETE",
+      "path": "/users/{userId}",
+      "summary": "Delete a user that is no longer referenced",
+      "resource": "users",
+      "tag": "Accounts Users",
+      "path_params": [
+        {
+          "name": "userId",
+          "legacy_name": "id",
+          "type": "integer",
+          "format": "int64",
+          "required": true,
+          "description": "Opaque user identifier",
+          "enum": [],
+          "default": null,
+          "evidence": [
+            {
+              "claim": "legacy id parameter is a Long",
+              "file": "accounts/src/main/java/com/acme/accounts/web/UserServlet.java",
+              "line": 71,
+              "snippet": "Long id = Long.valueOf(request.getParameter(\"id\"));"
+            }
+          ]
+        }
+      ],
+      "query_params": [],
+      "request_body": null,
+      "responses": [
+        {
+          "status": 204,
+          "description": "User deleted",
+          "content_type": null,
+          "schema_ref": null,
+          "fields": [],
+          "is_array": false,
+          "paginated": false,
+          "evidence": [
+            {
+              "claim": "success answers 204",
+              "file": "accounts/src/main/java/com/acme/accounts/web/UserServlet.java",
+              "line": 74,
+              "snippet": "response.setStatus(HttpServletResponse.SC_NO_CONTENT);"
+            }
+          ]
+        },
+        {
+          "status": 404,
+          "description": "No user with this id",
+          "content_type": "application/json",
+          "schema_ref": "Problem",
+          "fields": [],
+          "is_array": false,
+          "paginated": false,
+          "evidence": [
+            {
+              "claim": "missing user answers 404",
+              "file": "accounts/src/main/java/com/acme/accounts/web/UserServlet.java",
+              "line": 54,
+              "snippet": "response.sendError(HttpServletResponse.SC_NOT_FOUND, \"User not found\");"
+            }
+          ]
+        },
+        {
+          "status": 409,
+          "description": "User is still referenced (UserInUseException)",
+          "content_type": "application/json",
+          "schema_ref": "Problem",
+          "fields": [],
+          "is_array": false,
+          "paginated": false,
+          "evidence": [
+            {
+              "claim": "UserInUseException maps to 409",
+              "file": "accounts/src/main/java/com/acme/accounts/web/UserServlet.java",
+              "line": 76,
+              "snippet": "response.sendError(409, \"error.user.inuse\");"
+            },
+            {
+              "claim": "checked exception thrown by delete",
+              "file": "accounts/src/main/java/com/acme/accounts/ejb/UserInUseException.java",
+              "line": 7,
+              "snippet": "public class UserInUseException extends Exception {"
+            }
+          ]
+        }
+      ],
+      "roles": [
+        {
+          "name": "admin",
+          "evidence": [
+            {
+              "claim": "delete is restricted to admin",
+              "file": "accounts/src/main/java/com/acme/accounts/ejb/UserManagerBean.java",
+              "line": 65,
+              "snippet": "@RolesAllowed(\"admin\")"
+            }
+          ]
+        }
+      ],
+      "idempotent": true,
+      "legacy_source": {
+        "module": "accounts",
+        "servlet": "UserServlet",
+        "op": "delete",
+        "http_methods": [
+          "POST"
+        ],
+        "jsps": [
+          "accounts/src/main/webapp/userList.jsp"
+        ]
+      },
+      "ejb_methods": [
+        "com.acme.accounts.ejb.UserManagerLocal#delete(Long)"
+      ],
+      "evidence": [
+        {
+          "claim": "delete branch",
+          "file": "accounts/src/main/java/com/acme/accounts/web/UserServlet.java",
+          "line": 70,
+          "snippet": "} else if (\"delete\".equals(op)) {"
+        }
+      ],
+      "hint_override_reason": null
+    }
+  ],
+  "no_api_needed": null,
+  "lookups_needed": [],
+  "open_questions": [],
+  "confidence": 0.85
+}

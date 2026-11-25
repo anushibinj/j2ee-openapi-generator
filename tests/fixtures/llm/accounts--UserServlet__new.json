@@ -1,0 +1,8 @@
+{
+  "packet_id": "accounts:UserServlet#new",
+  "operations": [],
+  "no_api_needed": "Renders an empty edit form with a blank User; no server data is read.",
+  "lookups_needed": [],
+  "open_questions": [],
+  "confidence": 0.9
+}

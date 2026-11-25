@@ -1,0 +1,157 @@
+{
+  "packet_id": "sales:ReportServlet#daily",
+  "operations": [
+    {
+      "http_method": "GET",
+      "path": "/reports/daily",
+      "summary": "Order count and revenue for one day",
+      "resource": "reports",
+      "tag": "Sales Reports",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "day",
+          "legacy_name": "day",
+          "type": "string",
+          "format": "date",
+          "required": true,
+          "description": null,
+          "enum": [],
+          "default": null,
+          "evidence": [
+            {
+              "claim": "day parameter",
+              "file": "sales/src/main/java/com/acme/sales/web/ReportServlet.java",
+              "line": 31,
+              "snippet": "String day = request.getParameter(\"day\");"
+            }
+          ]
+        }
+      ],
+      "request_body": null,
+      "responses": [
+        {
+          "status": 200,
+          "description": "Daily totals",
+          "content_type": "application/json",
+          "schema_ref": "DailyReport",
+          "fields": [
+            {
+              "name": "day",
+              "type": "string",
+              "format": "date",
+              "required": false,
+              "description": null,
+              "enum": [],
+              "items_ref": null,
+              "evidence": [
+                {
+                  "claim": "day is echoed",
+                  "file": "sales/src/main/java/com/acme/sales/web/ReportServlet.java",
+                  "line": 35,
+                  "snippet": "out.print(\"{\\\"day\\\":\\\"\" + day + \"\\\",\\\"orders\\\":\" + totals.getLineCount()"
+                }
+              ]
+            },
+            {
+              "name": "orders",
+              "type": "integer",
+              "format": null,
+              "required": false,
+              "description": null,
+              "enum": [],
+              "items_ref": null,
+              "evidence": [
+                {
+                  "claim": "order count",
+                  "file": "sales/src/main/java/com/acme/sales/web/ReportServlet.java",
+                  "line": 35,
+                  "snippet": "out.print(\"{\\\"day\\\":\\\"\" + day + \"\\\",\\\"orders\\\":\" + totals.getLineCount()"
+                }
+              ]
+            },
+            {
+              "name": "revenue",
+              "type": "string",
+              "format": "decimal",
+              "required": false,
+              "description": "Decimal string",
+              "enum": [],
+              "items_ref": null,
+              "evidence": [
+                {
+                  "claim": "revenue",
+                  "file": "sales/src/main/java/com/acme/sales/web/ReportServlet.java",
+                  "line": 36,
+                  "snippet": "+ \",\\\"revenue\\\":\\\"\" + totals.getTotal() + \"\\\"}\");"
+                }
+              ]
+            }
+          ],
+          "is_array": false,
+          "paginated": false,
+          "evidence": [
+            {
+              "claim": "JSON body",
+              "file": "sales/src/main/java/com/acme/sales/web/ReportServlet.java",
+              "line": 33,
+              "snippet": "response.setContentType(\"application/json\");"
+            }
+          ]
+        }
+      ],
+      "roles": [
+        {
+          "name": "sales",
+          "evidence": [
+            {
+              "claim": "EJB class level role list",
+              "file": "sales/src/main/java/com/acme/sales/ejb/OrderManagerBean.java",
+              "line": 20,
+              "snippet": "@RolesAllowed({\"sales\", \"manager\"})"
+            }
+          ]
+        },
+        {
+          "name": "manager",
+          "evidence": [
+            {
+              "claim": "EJB class level role list",
+              "file": "sales/src/main/java/com/acme/sales/ejb/OrderManagerBean.java",
+              "line": 20,
+              "snippet": "@RolesAllowed({\"sales\", \"manager\"})"
+            }
+          ]
+        }
+      ],
+      "idempotent": true,
+      "legacy_source": {
+        "module": "sales",
+        "servlet": "ReportServlet",
+        "op": "daily",
+        "http_methods": [
+          "GET"
+        ],
+        "jsps": [
+          "sales/src/main/webapp/report.jsp"
+        ]
+      },
+      "ejb_methods": [
+        "com.acme.sales.ejb.OrderManagerLocal#dailyTotals(String)"
+      ],
+      "evidence": [
+        {
+          "claim": "doDaily found by reflective dispatch",
+          "file": "sales/src/main/java/com/acme/sales/web/ReportServlet.java",
+          "line": 29,
+          "snippet": "public void doDaily(HttpServletRequest request, HttpServletResponse response)"
+        }
+      ],
+      "hint_override_reason": null
+    }
+  ],
+  "no_api_needed": null,
+  "lookups_needed": [],
+  "open_questions": [],
+  "confidence": 0.85
+}

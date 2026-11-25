@@ -1,0 +1,94 @@
+{
+  "packet_id": "accounts:ProfileServlet#view",
+  "operations": [
+    {
+      "http_method": "GET",
+      "path": "/profile",
+      "summary": "Read the signed-in user's profile",
+      "resource": "profile",
+      "tag": "Accounts Profile",
+      "path_params": [],
+      "query_params": [],
+      "request_body": null,
+      "responses": [
+        {
+          "status": 200,
+          "description": "The profile",
+          "content_type": "application/json",
+          "schema_ref": "User",
+          "fields": [],
+          "is_array": false,
+          "paginated": false,
+          "evidence": [
+            {
+              "claim": "profile is the current user",
+              "file": "accounts/src/main/java/com/acme/accounts/web/ProfileServlet.java",
+              "line": 42,
+              "snippet": "request.setAttribute(\"user\", me);"
+            }
+          ]
+        }
+      ],
+      "roles": [
+        {
+          "name": "user",
+          "evidence": [
+            {
+              "claim": "EJB class level role list",
+              "file": "accounts/src/main/java/com/acme/accounts/ejb/UserManagerBean.java",
+              "line": 13,
+              "snippet": "@RolesAllowed({\"admin\", \"user\"})"
+            }
+          ]
+        },
+        {
+          "name": "admin",
+          "evidence": [
+            {
+              "claim": "EJB class level role list",
+              "file": "accounts/src/main/java/com/acme/accounts/ejb/UserManagerBean.java",
+              "line": 13,
+              "snippet": "@RolesAllowed({\"admin\", \"user\"})"
+            }
+          ]
+        }
+      ],
+      "idempotent": true,
+      "legacy_source": {
+        "module": "accounts",
+        "servlet": "ProfileServlet",
+        "op": "view",
+        "http_methods": [
+          "GET"
+        ],
+        "jsps": [
+          "accounts/src/main/webapp/userView.jsp"
+        ]
+      },
+      "ejb_methods": [
+        "com.acme.accounts.ejb.UserManagerLocal#findByLogin(String)"
+      ],
+      "evidence": [
+        {
+          "claim": "view branch",
+          "file": "accounts/src/main/java/com/acme/accounts/web/ProfileServlet.java",
+          "line": 41,
+          "snippet": "if (OP_VIEW.equals(op)) {"
+        },
+        {
+          "claim": "the profile is resolved from the remote user",
+          "file": "accounts/src/main/java/com/acme/accounts/web/ProfileServlet.java",
+          "line": 40,
+          "snippet": "User me = userManager.findByLogin(request.getRemoteUser());"
+        }
+      ],
+      "hint_override_reason": null
+    }
+  ],
+  "no_api_needed": null,
+  "lookups_needed": [],
+  "open_questions": [
+    "Singleton resource; no id parameter exists because the user comes from the session."
+  ],
+  "confidence": 0.85
+}

@@ -1,0 +1,59 @@
+{
+  "packet_id": "sales:LookupServlet#statuses",
+  "operations": [
+    {
+      "http_method": "GET",
+      "path": "/lookups/statuses",
+      "summary": "Order status reference data",
+      "resource": "lookups",
+      "tag": "Sales Lookups",
+      "path_params": [],
+      "query_params": [],
+      "request_body": null,
+      "responses": [
+        {
+          "status": 200,
+          "description": "Status names",
+          "content_type": "application/json",
+          "schema_ref": "string",
+          "fields": [],
+          "is_array": true,
+          "paginated": false,
+          "evidence": [
+            {
+              "claim": "static array of the four OrderStatus names",
+              "file": "sales/src/main/java/com/acme/sales/web/LookupServlet.java",
+              "line": 9999,
+              "snippet": "response.getWriter().write(\"[\\\"DRAFT\\\",\\\"SUBMITTED\\\",\\\"SHIPPED\\\",\\\"CANCELLED\\\"]\");"
+            }
+          ]
+        }
+      ],
+      "roles": [],
+      "idempotent": true,
+      "legacy_source": {
+        "module": "sales",
+        "servlet": "LookupServlet",
+        "op": "statuses",
+        "http_methods": [
+          "GET"
+        ],
+        "jsps": []
+      },
+      "ejb_methods": [],
+      "evidence": [
+        {
+          "claim": "map registered handler",
+          "file": "sales/src/main/java/com/acme/sales/web/LookupServlet.java",
+          "line": 25,
+          "snippet": "handlers.put(\"statuses\", this::loadStatusesFromDatabase);"
+        }
+      ],
+      "hint_override_reason": null
+    }
+  ],
+  "no_api_needed": null,
+  "lookups_needed": [],
+  "open_questions": [],
+  "confidence": 0.9
+}

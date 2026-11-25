@@ -1,0 +1,162 @@
+{
+  "packet_id": "accounts:ProfileServlet#update",
+  "operations": [
+    {
+      "http_method": "PATCH",
+      "path": "/profile",
+      "summary": "Update the signed-in user's display name, e-mail and locale",
+      "resource": "profile",
+      "tag": "Accounts Profile",
+      "path_params": [],
+      "query_params": [],
+      "request_body": {
+        "content_type": "application/json",
+        "schema_ref": "UserPatch",
+        "fields": [
+          {
+            "name": "displayName",
+            "type": "string",
+            "format": null,
+            "required": false,
+            "description": "Mapped to User.name, max 80",
+            "enum": [],
+            "items_ref": null,
+            "evidence": [
+              {
+                "claim": "display name parameter",
+                "file": "accounts/src/main/java/com/acme/accounts/web/ProfileServlet.java",
+                "line": 45,
+                "snippet": "String displayName = request.getParameter(\"displayName\");"
+              }
+            ]
+          },
+          {
+            "name": "email",
+            "type": "string",
+            "format": "email",
+            "required": false,
+            "description": null,
+            "enum": [],
+            "items_ref": null,
+            "evidence": [
+              {
+                "claim": "email parameter",
+                "file": "accounts/src/main/java/com/acme/accounts/web/ProfileServlet.java",
+                "line": 46,
+                "snippet": "String email = request.getParameter(\"email\");"
+              }
+            ]
+          },
+          {
+            "name": "locale",
+            "type": "string",
+            "format": null,
+            "required": false,
+            "description": null,
+            "enum": [],
+            "items_ref": null,
+            "evidence": [
+              {
+                "claim": "locale parameter",
+                "file": "accounts/src/main/java/com/acme/accounts/web/ProfileServlet.java",
+                "line": 47,
+                "snippet": "String locale = request.getParameter(\"locale\");"
+              }
+            ]
+          }
+        ],
+        "required": [
+          "displayName"
+        ]
+      },
+      "responses": [
+        {
+          "status": 200,
+          "description": "Updated profile",
+          "content_type": "application/json",
+          "schema_ref": "User",
+          "fields": [],
+          "is_array": false,
+          "paginated": false,
+          "evidence": [
+            {
+              "claim": "locale is stored on the user",
+              "file": "accounts/src/main/java/com/acme/accounts/web/ProfileServlet.java",
+              "line": 54,
+              "snippet": "me.setLocale(locale);"
+            }
+          ]
+        },
+        {
+          "status": 400,
+          "description": "Invalid display name",
+          "content_type": "application/json",
+          "schema_ref": "Problem",
+          "fields": [],
+          "is_array": false,
+          "paginated": false,
+          "evidence": [
+            {
+              "claim": "name over 80 chars is a 400",
+              "file": "accounts/src/main/java/com/acme/accounts/web/ProfileServlet.java",
+              "line": 49,
+              "snippet": "response.sendError(HttpServletResponse.SC_BAD_REQUEST, \"Invalid display name\");"
+            }
+          ]
+        }
+      ],
+      "roles": [
+        {
+          "name": "user",
+          "evidence": [
+            {
+              "claim": "EJB class level role list",
+              "file": "accounts/src/main/java/com/acme/accounts/ejb/UserManagerBean.java",
+              "line": 13,
+              "snippet": "@RolesAllowed({\"admin\", \"user\"})"
+            }
+          ]
+        },
+        {
+          "name": "admin",
+          "evidence": [
+            {
+              "claim": "EJB class level role list",
+              "file": "accounts/src/main/java/com/acme/accounts/ejb/UserManagerBean.java",
+              "line": 13,
+              "snippet": "@RolesAllowed({\"admin\", \"user\"})"
+            }
+          ]
+        }
+      ],
+      "idempotent": false,
+      "legacy_source": {
+        "module": "accounts",
+        "servlet": "ProfileServlet",
+        "op": "update",
+        "http_methods": [
+          "POST"
+        ],
+        "jsps": [
+          "accounts/src/main/webapp/userView.jsp"
+        ]
+      },
+      "ejb_methods": [
+        "com.acme.accounts.ejb.UserManagerLocal#update(User,Long)"
+      ],
+      "evidence": [
+        {
+          "claim": "update branch",
+          "file": "accounts/src/main/java/com/acme/accounts/web/ProfileServlet.java",
+          "line": 44,
+          "snippet": "} else if (OP_UPDATE.equals(op)) {"
+        }
+      ],
+      "hint_override_reason": null
+    }
+  ],
+  "no_api_needed": null,
+  "lookups_needed": [],
+  "open_questions": [],
+  "confidence": 0.85
+}

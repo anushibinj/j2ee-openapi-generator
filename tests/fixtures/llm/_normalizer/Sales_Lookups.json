@@ -1,0 +1,23 @@
+{
+  "tag": "Sales Lookups",
+  "operations": [
+    {
+      "key": "GET /lookups/countries",
+      "operation_id": "listCountries",
+      "summary": "List countries",
+      "description": null
+    },
+    {
+      "key": "GET /lookups/statuses",
+      "operation_id": "listOrderStatuses",
+      "summary": "List order statuses",
+      "description": null
+    }
+  ],
+  "tag_descriptions": [
+    {
+      "tag": "Sales Lookups",
+      "description": "Operations of the sales lookups area."
+    }
+  ]
+}

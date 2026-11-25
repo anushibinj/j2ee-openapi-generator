@@ -1,0 +1,107 @@
+{
+  "packet_id": "sales:OrderServlet#detail",
+  "operations": [
+    {
+      "http_method": "GET",
+      "path": "/orders/{orderId}",
+      "summary": "Read an order summary by order number",
+      "resource": "orders",
+      "tag": "Sales Orders",
+      "path_params": [
+        {
+          "name": "orderId",
+          "legacy_name": "orderNumber",
+          "type": "string",
+          "format": null,
+          "required": true,
+          "description": "Order number",
+          "enum": [],
+          "default": null,
+          "evidence": [
+            {
+              "claim": "order number is a string like ORD-2024-0001",
+              "file": "sales/src/main/java/com/acme/sales/web/OrderServlet.java",
+              "line": 77,
+              "snippet": "String orderNumber = request.getParameter(\"orderNumber\");"
+            }
+          ]
+        }
+      ],
+      "query_params": [],
+      "request_body": null,
+      "responses": [
+        {
+          "status": 200,
+          "description": "The order summary",
+          "content_type": "application/json",
+          "schema_ref": "OrderSummaryDto",
+          "fields": [],
+          "is_array": false,
+          "paginated": false,
+          "evidence": [
+            {
+              "claim": "summary DTO is exposed",
+              "file": "sales/src/main/java/com/acme/sales/web/OrderServlet.java",
+              "line": 78,
+              "snippet": "request.setAttribute(\"summary\", orderManager.findSummary(orderNumber));"
+            }
+          ]
+        }
+      ],
+      "roles": [
+        {
+          "name": "sales",
+          "evidence": [
+            {
+              "claim": "EJB class level role list",
+              "file": "sales/src/main/java/com/acme/sales/ejb/OrderManagerBean.java",
+              "line": 20,
+              "snippet": "@RolesAllowed({\"sales\", \"manager\"})"
+            }
+          ]
+        },
+        {
+          "name": "manager",
+          "evidence": [
+            {
+              "claim": "EJB class level role list",
+              "file": "sales/src/main/java/com/acme/sales/ejb/OrderManagerBean.java",
+              "line": 20,
+              "snippet": "@RolesAllowed({\"sales\", \"manager\"})"
+            }
+          ]
+        }
+      ],
+      "idempotent": true,
+      "legacy_source": {
+        "module": "sales",
+        "servlet": "OrderServlet",
+        "op": "detail",
+        "http_methods": [
+          "GET"
+        ],
+        "jsps": [
+          "sales/src/main/webapp/orderList.jsp"
+        ]
+      },
+      "ejb_methods": [
+        "com.acme.sales.ejb.OrderManagerLocal#findSummary(String)"
+      ],
+      "evidence": [
+        {
+          "claim": "detail case",
+          "file": "sales/src/main/java/com/acme/sales/web/OrderServlet.java",
+          "line": 76,
+          "snippet": "case OP_DETAIL: {"
+        }
+      ],
+      "hint_override_reason": null
+    }
+  ],
+  "no_api_needed": null,
+  "lookups_needed": [],
+  "open_questions": [
+    "CONFLICT FIXTURE: same method and path as sales:OrderServlet#view but string path param and OrderSummaryDto response."
+  ],
+  "confidence": 0.6
+}

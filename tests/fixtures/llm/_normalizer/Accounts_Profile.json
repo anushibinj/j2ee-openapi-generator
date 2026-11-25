@@ -1,0 +1,23 @@
+{
+  "tag": "Accounts Profile",
+  "operations": [
+    {
+      "key": "GET /profile",
+      "operation_id": "getProfile",
+      "summary": "Get the current profile",
+      "description": null
+    },
+    {
+      "key": "PATCH /profile",
+      "operation_id": "updateProfile",
+      "summary": "Update the current profile",
+      "description": null
+    }
+  ],
+  "tag_descriptions": [
+    {
+      "tag": "Accounts Profile",
+      "description": "Operations of the accounts profile area."
+    }
+  ]
+}
