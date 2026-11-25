@@ -244,3 +244,18 @@ def test_oversized_single_block() -> None:
     out = fit_packet(p, 10)
     assert len(out) == 1 and out[0].partial
     assert "oversized" in out[0].trimmed
+
+
+def test_never_trim_keeps_context_chunks() -> None:
+    chunks = [
+        branch_chunk(1),
+        chunk("E1.java", 1, 40, "ejb_impl"),
+        chunk("J.jsp", 1, 40, "jsp_response"),
+        chunk("H.java", 1, 40, "helper"),
+    ]
+    p = packet(chunks)
+    tight = packet_tokens(packet([chunks[0]]))
+    out = fit_packet(p, tight + SLACK, never_trim=True)
+    assert all("ejb_impl:" not in t and "helper:" not in t for o in out for t in o.trimmed)
+    files = {c.file for o in out for c in o.chunks}
+    assert {"E1.java", "J.jsp", "H.java"} <= files

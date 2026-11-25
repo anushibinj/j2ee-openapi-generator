@@ -63,8 +63,8 @@ ROLE_ORDER = (
     "jsp_request",
     "jsp_response",
 )
-WHOLE_JSP_LINES = 120
-SMALL_CLASS_LINES = 40
+WHOLE_JSP_LINES = 1000
+SMALL_CLASS_LINES = 400
 _FORM_OPEN = re.compile(r"<form\b", re.I)
 _FORM_CLOSE = re.compile(r"</form\s*>", re.I)
 _RESPONSE_LINE = re.compile(r"forEach|fmt:message|\$\{|<input\b|<select\b|<textarea\b", re.I)
@@ -324,8 +324,8 @@ def _is_binary(entry: DispatchEntry) -> bool:
     )
 
 
-MAX_DISPATCH_LINES = 40
-MAX_WEB_XML_LINES = 200
+MAX_DISPATCH_LINES = 400
+MAX_WEB_XML_LINES = 2000
 
 
 def _context_chunks(
