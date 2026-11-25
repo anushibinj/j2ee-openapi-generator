@@ -10,3 +10,7 @@ Ambiguities are resolved in favour of determinism and traceability.
 6. **Proposal paths** are relative to `openapi.api_prefix`; the emitter prepends the prefix.
 7. **Standard errors** (400, 401, 403, 500) are added by the emitter, never proposed.
 8. **YAML** uses `ruamel.yaml` for the OpenAPI document, and `pyyaml` only for reading config and decision files.
+9. **Page schema** uses `content`, `page`, `size`, `totalElements`, `totalPages`.
+10. **Known gap:** `EntityField` has no `@Temporal`, so `java.util.Date` is always `date-time`.
+11. **Contract additions during build:** `AccessCount.module`, `IndexBundle`, `ProposalRecord`, `StoreSnapshot`, `CoverageRow`.
+12. **JSP parsing** uses a regex tokenizer over masked text (not selectolax) to keep real line numbers.

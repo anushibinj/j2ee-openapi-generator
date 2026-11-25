@@ -77,7 +77,7 @@ Proposals reference the shared schema `Problem` for every error response.
 
 - Collection endpoints that accept `page` and `size` (or equivalent) are paginated. Set
   `paginated: true` on the 200 response; the emitter generates the wrapper schema `{Name}Page`
-  (`UserPage`) with `items`, `page`, `size`, `totalElements`, `totalPages`.
+  (`UserPage`) with `content`, `page`, `size`, `totalElements`, `totalPages`.
 - `page` is 0-based. `size` defaults to 20 and has a maximum of 100.
 - `sort` is a repeatable query parameter of the form `field,asc` or `field,desc`.
 - Filters (`name`, `status`, `customerId`) are plain query parameters.
