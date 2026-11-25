@@ -13,7 +13,7 @@ from j2ee_openapi_generator.aggregate.models import (
 )
 from j2ee_openapi_generator.config import Config, OpenApiConfig
 from j2ee_openapi_generator.index.models import EntityField, EntityRecord
-from j2ee_openapi_generator.llm.schemas import EndpointProposal, Operation, RenameMap
+from j2ee_openapi_generator.llm.schemas import EndpointProposal, RenameMap
 
 LLM = Path(__file__).parents[1] / "fixtures" / "llm"
 
@@ -74,8 +74,13 @@ def entities() -> list[EntityRecord]:
             field("id", "Long", is_id=True),
             field("version", "Long", is_version=True),
             field("orderNumber", "String", pattern="ORD-[0-9]{4}-[0-9]{4}", length=13),
-            field("customer", "Customer", relationship="ManyToOne", target_type="Customer",
-                  not_null=True),
+            field(
+                "customer",
+                "Customer",
+                relationship="ManyToOne",
+                target_type="Customer",
+                not_null=True,
+            ),
             field("status", "OrderStatus", enumerated=True, nullable=False),
             field("total", "BigDecimal", nullable=False),
             field("orderDate", "Date"),
@@ -180,8 +185,10 @@ def snapshot() -> StoreSnapshot:
                 kind="incompatible_duplicate",
                 summary="GET /orders/{} claimed twice",
                 packet_ids=["sales:OrderServlet#detail", "sales:OrderServlet#view"],
-                proposals=[{"path": "/orders/{orderId}", "type": "integer"},
-                           {"path": "/orders/{orderId}", "type": "string"}],
+                proposals=[
+                    {"path": "/orders/{orderId}", "type": "integer"},
+                    {"path": "/orders/{orderId}", "type": "string"},
+                ],
             ),
             ConflictRow(
                 id="c0",
@@ -192,15 +199,31 @@ def snapshot() -> StoreSnapshot:
             ),
         ],
         coverage=[
-            CoverageRow(entry_id="sales:OrderServlet#list", status="mapped",
-                        operations=["GET /orders"], usage_count=12, confidence=0.9),
-            CoverageRow(entry_id="accounts:UserServlet#edit", status="no_api_needed",
-                        reasons=["same data as read"], confidence=0.8),
-            CoverageRow(entry_id="accounts:UserServlet#save", status="mapped",
-                        operations=["POST /users", "PUT /users/{userId}"], usage_count=3,
-                        confidence=0.7),
-            CoverageRow(entry_id="sales:OrderServlet#view", status="conflict",
-                        reasons=["conflicts with detail"]),
+            CoverageRow(
+                entry_id="sales:OrderServlet#list",
+                status="mapped",
+                operations=["GET /orders"],
+                usage_count=12,
+                confidence=0.9,
+            ),
+            CoverageRow(
+                entry_id="accounts:UserServlet#edit",
+                status="no_api_needed",
+                reasons=["same data as read"],
+                confidence=0.8,
+            ),
+            CoverageRow(
+                entry_id="accounts:UserServlet#save",
+                status="mapped",
+                operations=["POST /users", "PUT /users/{userId}"],
+                usage_count=3,
+                confidence=0.7,
+            ),
+            CoverageRow(
+                entry_id="sales:OrderServlet#view",
+                status="conflict",
+                reasons=["conflicts with detail"],
+            ),
         ],
         open_questions={
             "Sales Orders": ["Is the order number unique across customers?", "Zeta question?"],
