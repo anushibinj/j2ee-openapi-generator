@@ -1,7 +1,7 @@
 .venv/
 __pycache__/
 *.pyc
-.oapi/
+.oapi*/
 out/
 .env
 .mypy_cache/
