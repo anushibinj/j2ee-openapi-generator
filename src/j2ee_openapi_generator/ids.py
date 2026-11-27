@@ -35,9 +35,12 @@ def sha256_obj(obj: Any) -> str:
     return sha256_text(canonical_json(obj))
 
 
-def entry_point_id(module: str, servlet_simple_name: str, op: str) -> str:
-    """Stable entry point ID: ``{module}:{ServletSimpleName}#{op}``."""
-    return f"{module}:{servlet_simple_name}#{op}"
+def entry_point_id(
+    module: str, servlet_simple_name: str, op: str, discriminator: str | None = None
+) -> str:
+    """Stable entry point ID, optionally disambiguated by request method."""
+    base = f"{module}:{servlet_simple_name}#{op}"
+    return f"{base}@{discriminator}" if discriminator else base
 
 
 _SAFE = re.compile(r"[^A-Za-z0-9._-]+")
@@ -49,7 +52,7 @@ def id_to_filename(entry_id: str) -> str:
 
 
 def split_entry_point_id(entry_id: str) -> tuple[str, str, str]:
-    """Inverse of :func:`entry_point_id`: returns (module, servlet, op)."""
+    """Return (module, servlet, operation identifier), including any method discriminator."""
     mod, rest = entry_id.split(":", 1)
     servlet, op = rest.split("#", 1)
     return mod, servlet, op

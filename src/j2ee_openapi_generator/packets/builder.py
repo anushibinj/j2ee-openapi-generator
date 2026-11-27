@@ -387,6 +387,49 @@ def _sort_chunks(chunks: list[SourceChunk]) -> list[SourceChunk]:
     )
 
 
+def _dispatch_identity(
+    entry: DispatchEntry,
+) -> tuple[str, str, str, tuple[str, ...], str, int, int]:
+    return (
+        entry.module,
+        entry.servlet_fqcn,
+        entry.op,
+        tuple(entry.http_methods),
+        entry.file,
+        entry.start_line,
+        entry.end_line,
+    )
+
+
+def _packet_entry_ids(
+    entries: list[DispatchEntry],
+) -> dict[tuple[str, str, str, tuple[str, ...], str, int, int], str]:
+    groups: dict[tuple[str, str, str], list[DispatchEntry]] = {}
+    for entry in entries:
+        key = (entry.module, entry.servlet_fqcn, entry.op)
+        groups.setdefault(key, []).append(entry)
+
+    ids: dict[tuple[str, str, str, tuple[str, ...], str, int, int], str] = {}
+    for (module, fqcn, op), group in groups.items():
+        simple_name = fqcn.rsplit(".", 1)[-1]
+        if len(group) == 1:
+            ids[_dispatch_identity(group[0])] = entry_point_id(module, simple_name, op)
+            continue
+
+        by_methods: dict[tuple[str, ...], list[DispatchEntry]] = {}
+        for entry in group:
+            by_methods.setdefault(tuple(entry.http_methods), []).append(entry)
+        for methods, same_method in by_methods.items():
+            qualifier = "-".join(methods) or "UNKNOWN"
+            ordered = sorted(same_method, key=lambda e: (e.file, e.start_line, e.end_line))
+            for index, entry in enumerate(ordered, start=1):
+                discriminator = f"{qualifier}-{index}" if len(ordered) > 1 else qualifier
+                ids[_dispatch_identity(entry)] = entry_point_id(
+                    module, simple_name, op, discriminator
+                )
+    return ids
+
+
 def build_packet(
     entry: DispatchEntry,
     bundle: IndexBundle,
@@ -395,11 +438,17 @@ def build_packet(
     prompt_tokens: int,
 ) -> list[WorkPacket]:
     """Build the packet of one entry point; more than one only when it had to be split."""
-    return _build(entry, bundle, _Sources(read_source), cfg, prompt_tokens)
+    entry_id = _packet_entry_ids(bundle.dispatch).get(_dispatch_identity(entry))
+    return _build(entry, bundle, _Sources(read_source), cfg, prompt_tokens, entry_id)
 
 
 def _build(
-    entry: DispatchEntry, bundle: IndexBundle, src: _Sources, cfg: Config, prompt_tokens: int
+    entry: DispatchEntry,
+    bundle: IndexBundle,
+    src: _Sources,
+    cfg: Config,
+    prompt_tokens: int,
+    entry_id: str | None = None,
 ) -> list[WorkPacket]:
     f = entry.facts
     servlet = _servlet_record(bundle, entry)
@@ -465,7 +514,7 @@ def _build(
         usage = usage_for(bundle.access, patterns, entry.op, entry.module)
 
     meta = EntryPointMeta(
-        id=entry_point_id(entry.module, entry.servlet_simple_name, entry.op),
+        id=entry_id or entry_point_id(entry.module, entry.servlet_simple_name, entry.op),
         module=entry.module,
         servlet_fqcn=entry.servlet_fqcn,
         op=entry.op,
@@ -497,18 +546,28 @@ _G_BUNDLE: IndexBundle | None = None
 _G_CFG: Config | None = None
 _G_SRC: _Sources | None = None
 _G_PROMPT_TOKENS = 0
+_G_ENTRY_IDS: dict[tuple[str, str, str, tuple[str, ...], str, int, int], str] = {}
 
 
 def _init_worker(bundle: IndexBundle, cfg: Config, prompt_tokens: int) -> None:
-    global _G_BUNDLE, _G_CFG, _G_SRC, _G_PROMPT_TOKENS
+    global _G_BUNDLE, _G_CFG, _G_SRC, _G_PROMPT_TOKENS, _G_ENTRY_IDS
     _G_BUNDLE, _G_CFG, _G_PROMPT_TOKENS = bundle, cfg, prompt_tokens
+    _G_ENTRY_IDS = _packet_entry_ids(bundle.dispatch)
     repo = cfg.repo_path
     _G_SRC = _Sources(lambda rel: (repo / rel).read_text(encoding="utf-8", errors="replace"))
 
 
 def _work(index: int) -> list[WorkPacket]:
     assert _G_BUNDLE is not None and _G_CFG is not None and _G_SRC is not None
-    return _build(_G_BUNDLE.dispatch[index], _G_BUNDLE, _G_SRC, _G_CFG, _G_PROMPT_TOKENS)
+    entry = _G_BUNDLE.dispatch[index]
+    return _build(
+        entry,
+        _G_BUNDLE,
+        _G_SRC,
+        _G_CFG,
+        _G_PROMPT_TOKENS,
+        _G_ENTRY_IDS.get(_dispatch_identity(entry)),
+    )
 
 
 def analyzer_prompt_tokens(cfg: Config) -> int:

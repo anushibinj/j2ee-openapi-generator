@@ -96,6 +96,24 @@ def test_all_entry_points(packets: dict[str, WorkPacket]) -> None:
     assert list(packets) == sorted(packets)
 
 
+def test_same_op_on_different_http_methods_has_unique_packet_ids(
+    cfg: Config, bundle: IndexBundle
+) -> None:
+    entry = next(
+        e for e in bundle.dispatch if e.http_methods == ["GET"] and e.op != "<default>"
+    )
+    duplicate = entry.model_copy(update={"http_methods": ["POST"]})
+    dual_method_bundle = bundle.model_copy(deep=True)
+    dual_method_bundle.dispatch.append(duplicate)
+
+    packets = build_packets(cfg, dual_method_bundle)
+    ids = {p.id for p in packets}
+    base = f"{entry.module}:{entry.servlet_simple_name}#{entry.op}"
+
+    assert f"{base}@GET" in ids
+    assert f"{base}@POST" in ids
+
+
 def test_chunks_match_real_files(packets: dict[str, WorkPacket], cfg: Config) -> None:
     for p in packets.values():
         assert p.packet_hash == compute_hash(p) and p.token_estimate > 0

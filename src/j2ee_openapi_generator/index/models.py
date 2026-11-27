@@ -144,7 +144,7 @@ class BranchFacts(BaseModel):
 
 
 class DispatchEntry(BaseModel):
-    """One op value of one servlet with its code range (an entry point before packets)."""
+    """One op branch and request-method set of a servlet before packet creation."""
 
     module: str
     servlet_fqcn: str

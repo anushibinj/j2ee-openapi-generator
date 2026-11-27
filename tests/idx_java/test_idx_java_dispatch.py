@@ -155,6 +155,24 @@ def test_do_post_only_and_own_dispatch_beats_helper() -> None:
     assert (e["<default>"].start_line, e["<default>"].end_line) == (5, 5)
 
 
+def test_same_op_in_get_and_post_keeps_both_dispatch_entries() -> None:
+    body = """
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) {
+        String op = req.getParameter("op");
+        if ("update".equals(op)) { showForm(); }
+    }
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) {
+        String op = req.getParameter("op");
+        if ("update".equals(op)) { save(); }
+    }
+    """
+    entries = [e for e in run_snippets(servlet(body)) if e.op == "update"]
+
+    assert len(entries) == 2
+    assert {tuple(e.http_methods) for e in entries} == {("GET",), ("POST",)}
+    assert len({(e.start_line, e.end_line) for e in entries}) == 2
+
+
 def test_direct_get_parameter_in_condition_and_unknown_param_ignored() -> None:
     body = """
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) {

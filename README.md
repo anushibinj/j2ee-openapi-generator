@@ -65,7 +65,8 @@ uv run oapi run --config tests/fixtures/oapi.yaml
 1. Run `oapi run` and read `out/coverage.md`, `out/conflicts.md` and `out/open-questions.md`.
    Every entry point is `mapped`, `no_api_needed`, `rejected`, `conflict` or `failed`.
 2. Record human decisions in `review/decisions.yaml` (see `review/decisions.example.yaml`),
-   keyed by packet ID (`module:Servlet#op`) or conflict ID (`c-xxxxxxxx`). Actions: `accept`,
+   keyed by packet ID (`module:Servlet#op`, or `module:Servlet#op@METHOD` when the same op has
+   multiple HTTP-method branches) or conflict ID (`c-xxxxxxxx`). Actions: `accept`,
    `override`, `drop` (needs a reason) and `rename_path`. Commit the file.
 3. `oapi aggregate --resolve-with-llm` writes advisory `review/suggestions.yaml`. Suggestions are
    never applied automatically; copy the ones you agree with into `decisions.yaml`.
@@ -94,10 +95,11 @@ the command, which keeps the contract additive-only.
 
 * **Index (no LLM):** tree-sitter Java symbol table, `web.xml`/`ejb-jar.xml`, `@WebServlet`,
   dispatch extraction for `if` chains, `switch`, constants, `Map<String, Handler>` registries,
-  reflection naming patterns and default branches; branch facts (params, session, attributes,
-  forwards, status codes, EJB calls); EJB and entity registries; JSP facts with scriptlet masking
-  that preserves line numbers; properties; a linker from JSP/JS URLs to (servlet, op); optional
-  access-log usage counts. File parsing runs in a process pool (`workers`).
+  reflection naming patterns and default branches; the same op handled by different HTTP methods
+  stays distinct; branch facts (params, session, attributes, forwards, status codes, EJB calls);
+  EJB and entity registries; JSP facts with scriptlet masking that preserves line numbers;
+  properties; a linker from JSP/JS URLs to (servlet, op); optional access-log usage counts. File
+  parsing runs in a process pool (`workers`).
 * **Packets:** one numbered-source work packet per entry point (`=== FILE path (lines a-b) ===`,
   every line prefixed `NNNN| `), trimmed to the token budget, with deterministic mapping hints.
 * **Verify:** every evidence citation must exist in the packet and its snippet identifiers and

@@ -39,7 +39,6 @@ from dataclasses import dataclass, field
 from tree_sitter import Node, Tree
 
 from j2ee_openapi_generator.config import Config
-from j2ee_openapi_generator.ids import entry_point_id
 from j2ee_openapi_generator.index.java_symbols import (
     ancestors,
     eval_const_expr,
@@ -716,10 +715,11 @@ class _Extractor:
             if not explore(pr[0], pr[1], ("GET", "POST")):
                 no_dispatch.append((pr[0], pr[1], ("GET", "POST")))
 
-        entries: dict[str, DispatchEntry] = {}
+        entries: dict[tuple[str, tuple[str, ...]], DispatchEntry] = {}
 
         def add(e: DispatchEntry) -> None:
-            entries.setdefault(e.op, e)
+            key = (e.op, tuple(e.http_methods))
+            entries.setdefault(key, e)
 
         for owner, m in dispatch_order:
             http_set_d = dispatch_http[(owner.fqcn, m.name, m.start_line)]
@@ -740,7 +740,7 @@ class _Extractor:
                         handler_method=r.handler,
                     )
                 )
-        if DEFAULT_OP not in entries and no_dispatch:
+        if not any(op == DEFAULT_OP for op, _methods in entries) and no_dispatch:
             # entries without any op dispatch: one entry spanning the largest request method
             best = max(no_dispatch, key=lambda t: t[1].end_line - t[1].start_line)
             http_set = {h for _, _, hs in no_dispatch for h in hs}
@@ -757,7 +757,7 @@ class _Extractor:
                     http_methods=[h for h in _HTTP_ORDER if h in http_set],
                 )
             )
-        return list(entries.values())
+        return [entries[k] for k in sorted(entries)]
 
 
 # ---------------------------------------------------------------------- helpers
@@ -807,14 +807,31 @@ def extract_dispatch(
     servlets: list[ServletRecord],
     read_source: Callable[[str], str],
 ) -> list[DispatchEntry]:
-    """Dispatch entries of every registered servlet, sorted by entry id."""
+    """Dispatch entries of every registered servlet, sorted by servlet, op and method."""
     files: dict[str, _FileCtx] = {}
-    result: dict[str, DispatchEntry] = {}
+    result: dict[tuple[str, str, str, tuple[str, ...]], DispatchEntry] = {}
     for rec in servlets:
         cls = java.classes.get(rec.class_fqcn)
         if cls is None:
             continue
         ex = _Extractor(cfg, java, read_source, files, cls)
         for e in ex.run(rec.module):
-            result.setdefault(entry_point_id(e.module, e.servlet_simple_name, e.op), e)
-    return [result[k] for k in sorted(result)]
+            key = (
+                e.module,
+                e.servlet_fqcn,
+                e.op,
+                tuple(e.http_methods),
+            )
+            result.setdefault(key, e)
+    return sorted(
+        result.values(),
+        key=lambda e: (
+            e.module,
+            e.servlet_simple_name,
+            e.op,
+            tuple(e.http_methods),
+            e.file,
+            e.start_line,
+            e.end_line,
+        ),
+    )
