@@ -50,7 +50,7 @@ class LLMConfig(BaseModel):
     structured_mode: StructuredMode = "json_schema"
     max_concurrency: int = 4
     timeout_s: float = 180
-    max_retries: int = 3
+    max_retries: int = Field(5, ge=0, le=5)  # retries after the first attempt
     fake: bool = False  # use FakeLLM (tests / offline demo)
     fake_dir: str | None = None  # directory of canned JSON, used when fake=true
 

@@ -28,7 +28,7 @@ llm:
   structured_mode: json_schema   # json_schema | tools | json_object | prompt_only
   max_concurrency: 4
   timeout_s: 180
-  max_retries: 3
+  max_retries: 5
 work_dir: .oapi
 out_dir: out
 review_dir: review
